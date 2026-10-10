@@ -1,0 +1,3205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スマート席替え 2.1 — 教室で使う座席表</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --pdf-btn: #dc2626;
+      --pdf-btn-hover: #b91c1c;
+      --print-btn: #475569;
+      --print-btn-hover: #334155;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+      --blackboard-bg: #1e392a;
+      --desk-bg: #b45309;
+      --male-bg: #eff6ff;
+      --male-border: #93c5fd;
+      --male-text: #1d4ed8;
+      --female-bg: #fdf2f8;
+      --female-border: #f472b6;
+      --female-text: #be185d;
+      --locked-bg: #fef3c7;
+      --locked-border: #f59e0b;
+      --disabled-bg: #f1f5f9;
+      --selected-border: #2563eb;
+      --group-border: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: auto;
+      overflow-y: auto;
+    }
+
+    /* ヘッダー */
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button, .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 14px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    button:hover, .btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    button.btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+    }
+    button.btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    button.btn-pdf {
+      background: var(--pdf-btn);
+      border-color: var(--pdf-btn);
+      color: #ffffff;
+    }
+    button.btn-pdf:hover {
+      background: var(--pdf-btn-hover);
+    }
+
+    button.btn-print {
+      background: var(--print-btn);
+      border-color: var(--print-btn);
+      color: #ffffff;
+    }
+    button.btn-print:hover {
+      background: var(--print-btn-hover);
+    }
+
+    button.btn-perspective {
+      background: #f0fdf4;
+      border-color: #86efac;
+      color: #166534;
+      font-size: 0.9rem;
+      padding: 8px 16px;
+    }
+    button.btn-perspective:hover {
+      background: #dcfce7;
+    }
+
+    /* ツールバー */
+    .toolbar {
+      background: #ffffff;
+      padding: 6px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 0.82rem;
+    }
+
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tool-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tool-item label {
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .tool-item input, .tool-item select {
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      background: #fff;
+    }
+
+    .tool-item input[type="number"] {
+      width: 52px;
+      text-align: center;
+    }
+
+    .tool-item input[type="text"] {
+      width: 140px;
+    }
+
+    /* 列行数クイック調整パネル（画面上部） */
+    .col-quick-settings-panel {
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      padding: 4px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+    }
+
+    .col-quick-title {
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: #475569;
+    }
+
+    .column-controllers-container {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .col-control-box {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      user-select: none;
+    }
+
+    .col-control-title {
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    .col-stepper {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .col-step-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .col-step-btn:hover {
+      background: #e2e8f0;
+    }
+
+    .col-rows-display {
+      font-weight: 700;
+      color: #0f172a;
+      min-width: 22px;
+      text-align: center;
+    }
+
+    /* メインエリア */
+    main {
+      flex: 1;
+      padding: 10px 16px 50px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: auto;
+      overflow-y: visible;
+      width: 100%;
+    }
+
+    .stage-container {
+      background: #ffffff;
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+      width: min(1050px, 98vw);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .print-sheet-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      text-align: center;
+      color: #0f172a;
+    }
+
+    .classroom-front {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin: 4px 0 8px 0;
+    }
+
+    /* 教師目線（黒板が下）のときは教卓が上、黒板が下 */
+    .classroom-front.perspective-teacher {
+      flex-direction: column-reverse;
+      margin: 16px 0 8px 0;
+    }
+
+    .blackboard {
+      width: min(580px, 80%);
+      background: var(--blackboard-bg);
+      color: #e2e8f0;
+      text-align: center;
+      padding: 5px 16px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.25em;
+      border-radius: 6px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.1);
+      border: 3px solid #64748b;
+    }
+
+    .teacher-desk {
+      width: 130px;
+      background: var(--desk-bg);
+      color: #ffffff;
+      text-align: center;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+
+    .seating-stage {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start; /* 生徒目線（黒板上）では上揃え */
+      gap: 8px;
+      padding: 2px;
+    }
+
+    /* 教師目線（黒板下）では下揃え（最前列が黒板直前で水平に揃う！） */
+    .seating-stage.perspective-teacher {
+      align-items: flex-end !important;
+    }
+
+    .seat-column {
+      flex: 1;
+      max-width: 150px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .seat-column.pair-gap-right {
+      margin-right: 18px;
+    }
+
+    .seat-cell {
+      width: 100%;
+      height: 68px;
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3px 5px 2px 5px;
+      position: relative;
+      cursor: grab;
+      user-select: none;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      overflow: visible;
+    }
+
+    /* 行数に応じた画面上の机高さ最適化（5行〜7行以上の画面収まり確保） */
+    .rows-le5 .seat-cell { height: 76px; padding: 4px 6px; }
+    .rows-6 .seat-cell { height: 66px; padding: 3px 5px 2px 5px; }
+    .rows-7 .seat-cell { height: 58px; padding: 2px 4px 1px 4px; }
+    .rows-ge8 .seat-cell { height: 50px; padding: 1px 3px; }
+
+    .seat-cell:active {
+      cursor: grabbing;
+    }
+
+    
+    /* 班境界線の手動操作用フローティングUI（画面上のみ表示、印刷・PDF除外） */
+    .divider-line-controls {
+      position: absolute;
+      bottom: -10px;
+      right: 4px;
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      user-select: none;
+      pointer-events: auto;
+    }
+    .group-border-top .divider-line-controls {
+      bottom: auto;
+      top: -10px;
+    }
+    .divider-btn-step {
+      background: #334155;
+      color: #ffffff;
+      border: none;
+      border-radius: 2px;
+      width: 17px;
+      height: 17px;
+      font-size: 0.65rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+    .divider-btn-step:hover {
+      background: #2563eb;
+    }
+    .divider-btn-label {
+      font-weight: 600;
+      font-size: 0.65rem;
+      padding: 0 2px;
+      white-space: nowrap;
+    }
+    .island-control-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 3px 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+    }
+    .island-control-title {
+      font-weight: 700;
+      color: #166534;
+      white-space: nowrap;
+    }
+    .island-stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .island-divider-display {
+      font-weight: 700;
+      color: #0f172a;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      min-width: 56px;
+      text-align: center;
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+
+    
+    /* 太線追加・削除用UI */
+    .divider-btn-del {
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      border-radius: 2px;
+      width: 17px;
+      height: 17px;
+      font-size: 0.65rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+      margin-left: 2px;
+    }
+    .divider-btn-del:hover {
+      background: #b91c1c;
+    }
+    .divider-add-handle {
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 8;
+      width: 24px;
+      height: 15px;
+      background: rgba(15, 23, 42, 0.75);
+      color: #ffffff;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s, transform 0.15s;
+      line-height: 1;
+      pointer-events: auto;
+    }
+    .seat-cell:hover .divider-add-handle {
+      opacity: 0.85;
+    }
+    .divider-add-handle:hover {
+      opacity: 1 !important;
+      background: #2563eb;
+      transform: translateX(-50%) scale(1.15);
+    }
+    .group-border-top .divider-add-handle {
+      bottom: auto;
+      top: -8px;
+    }
+
+    /* 班境界線の太線スタイル（席と席の間を線で分ける） */
+    .seat-cell.group-border-bottom {
+      border-bottom: 4px solid var(--group-border) !important;
+      margin-bottom: 6px;
+    }
+    .seat-cell.group-border-top {
+      border-top: 4px solid var(--group-border) !important;
+      margin-top: 6px;
+    }
+
+    .seat-cell.gender-male {
+      background: var(--male-bg);
+      border-color: var(--male-border);
+    }
+    .seat-cell.gender-male .seat-number {
+      color: var(--male-text);
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .seat-cell.gender-female {
+      background: var(--female-bg);
+      border-color: var(--female-border);
+    }
+    .seat-cell.gender-female .seat-number {
+      color: var(--female-text);
+    }
+
+    .seat-cell.is-locked {
+      background: var(--locked-bg) !important;
+      border-color: var(--locked-border) !important;
+    }
+
+    .seat-cell.is-disabled {
+      background: var(--disabled-bg) !important;
+      border-color: #cbd5e1 !important;
+      border-style: dashed;
+      cursor: default;
+      opacity: 0.6;
+    }
+    .seat-cell.is-disabled * {
+      display: none;
+    }
+    .seat-cell.is-disabled::after {
+      content: "✕ 空席";
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .seat-cell.is-selected {
+      outline: 3px solid var(--selected-border);
+      outline-offset: 2px;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+    }
+
+    .seat-cell.drag-over {
+      border: 2px dashed var(--primary);
+      background: #eff6ff !important;
+      transform: scale(1.03);
+    }
+
+    .seat-cell.is-dragging {
+      opacity: 0.4;
+    }
+
+    .seat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      height: 16px;
+      margin-bottom: 1px;
+    }
+
+    .seat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .seat-number {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .seat-group-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      background: #334155;
+      color: #ffffff;
+      padding: 1px 3px;
+      border-radius: 3px;
+      line-height: 1;
+    }
+
+    .seat-actions {
+      display: flex;
+      gap: 2px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      padding: 2px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      line-height: 1;
+      opacity: 0.65;
+      border-radius: 4px;
+    }
+    .icon-btn:hover {
+      opacity: 1;
+      background: rgba(0,0,0,0.06);
+    }
+
+    .seat-name-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 0;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .seat-ruby {
+      font-size: 0.62rem;
+      color: #64748b;
+      line-height: 1;
+      margin-bottom: 1px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .seat-name {
+      font-weight: 700;
+      text-align: center;
+      color: var(--text);
+      line-height: 1.15;
+      max-width: 100%;
+      word-break: keep-all;
+    }
+
+    .seat-empty {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .info-bar {
+      margin-top: 14px;
+      display: flex;
+      gap: 16px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    /* モーダル */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: #ffffff;
+      border-radius: 14px;
+      width: min(560px, 92vw);
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      background: #f8fafc;
+    }
+
+    textarea.roster-input {
+      width: 100%;
+      height: 200px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      resize: vertical;
+      font-family: monospace;
+      line-height: 1.5;
+    }
+
+    .help-text {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .col-row-grid-setting {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin: 8px 0;
+    }
+    .col-row-item {
+      background: #f8fafc;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1e293b;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+      pointer-events: none;
+      text-align: center;
+      max-width: 90vw;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 印刷スタイル（絶対にA4横1枚に収まり、班の境界線もクッキリ印刷） */
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 10mm 12mm; /* プリンターの給紙・印刷可能領域（余白）を十分に確保 */
+      }
+      html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      header, .toolbar, .col-quick-settings-panel, .info-bar, .modal-overlay, .toast, .seat-actions {
+        display: none !important;
+      }
+      main {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .stage-container {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .print-sheet-title {
+        display: block !important;
+        font-size: 1.3rem !important;
+        margin: 0 0 6px 0 !important;
+        line-height: 1.2 !important;
+        text-align: center !important;
+      }
+      .classroom-front {
+        margin: 4px 0 10px 0 !important;
+        gap: 6px !important;
+      }
+      .classroom-front.perspective-teacher {
+        margin: 10px 0 4px 0 !important;
+      }
+      .blackboard {
+        border: 2px solid #000000 !important;
+        background: var(--blackboard-bg) !important;
+        color: #ffffff !important;
+        padding: 3px 14px !important;
+        font-size: 0.95rem !important;
+        line-height: 1.2 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .teacher-desk {
+        background: var(--desk-bg) !important;
+        color: #ffffff !important;
+        padding: 2px 10px !important;
+        font-size: 0.8rem !important;
+        line-height: 1.2 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .seating-stage {
+        flex: 1 !important;
+        width: 100% !important;
+        padding: 4px 0 !important;
+        gap: 10px !important;
+        box-sizing: border-box !important;
+        justify-content: center !important;
+      }
+      .seat-column {
+        flex: 1 !important;
+        max-width: none !important;
+        gap: 8px !important; /* 縦方向の席同士の余白をしっかり確保 */
+        height: auto !important;
+      }
+      .rows-le5 .seat-column { gap: 12px !important; }
+      .rows-6 .seat-column { gap: 8px !important; }
+      .rows-7 .seat-column { gap: 6px !important; }
+      .rows-ge8 .seat-column { gap: 5px !important; }
+
+      .seat-column.pair-gap-right {
+        margin-right: 16px !important;
+      }
+
+      .divider-line-controls,
+      .divider-add-handle,
+      #group-divider-panel {
+        display: none !important;
+      }
+
+      /* 班境界線の印刷スタイル（黒の太線＋十分な間隔） */
+      .seat-cell.group-border-bottom {
+        border-bottom: 3.5px solid #000000 !important;
+        margin-bottom: 8px !important;
+      }
+      .seat-cell.group-border-top {
+        border-top: 3.5px solid #000000 !important;
+        margin-top: 8px !important;
+      }
+
+      /* 印刷範囲領域に収まりつつ、縦方向に席同士の余白が綺麗に残る最適な高さ */
+      .seat-cell {
+        width: 100% !important;
+        height: 64px !important;
+        border: 1.5px solid #000000 !important;
+        box-shadow: none !important;
+        padding: 2px 4px !important;
+        border-radius: 6px !important;
+        box-sizing: border-box !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .rows-le5 .seat-cell { height: 75px !important; }
+      .rows-6 .seat-cell { height: 65px !important; }
+      .rows-7 .seat-cell { height: 57px !important; }
+      .rows-ge8 .seat-cell { height: 49px !important; }
+
+      .seat-number {
+        font-size: 0.7rem !important;
+        line-height: 1 !important;
+      }
+      .seat-group-badge {
+        font-size: 0.6rem !important;
+        background: #000000 !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .seat-ruby {
+        font-size: 0.55rem !important;
+        line-height: 1 !important;
+        margin-bottom: 1px !important;
+      }
+      .seat-name {
+        font-size: 0.95rem !important;
+        line-height: 1.15 !important;
+      }
+      .seat-name-container {
+        padding: 0 !important;
+      }
+    }
+  .output-options { display:flex; flex-wrap:wrap; gap:8px 20px; padding:10px 14px; font-size:.85rem; background:#fff; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px; }
+.output-options label {display:flex; align-items:center; gap:6px;}
+.output-options input {width:18px;height:18px;}
+.output-options span {color:#475569;}
+.sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+:focus-visible {outline:3px solid #1d4ed8 !important;outline-offset:3px;}
+.gender-colors-off .seat-cell.gender-male:not(.is-locked), .gender-colors-off .seat-cell.gender-female:not(.is-locked) {background:#fff;border-color:#cbd5e1;}
+.gender-colors-off .seat-number {color:#475569 !important;}
+#accessible-print-sheet {display:none;}
+.seat-scroll {width:100%;overflow-x:auto;padding:12px 4px 16px;}
+.seat-scroll .seating-stage {margin:0 auto;}
+.seat-column {min-width:124px;}
+body:not(.editing-dividers) .divider-line-controls,body:not(.editing-dividers) .divider-add-handle {display:none;}
+.divider-edit-option {width:100%;}
+#unseated-panel select {max-width:100%;padding:8px;margin:4px;}
+@media (pointer:coarse) {.icon-btn{min-width:28px;min-height:28px}.seat-cell{min-height:74px}}
+@media print {
+  @page {size:A4 landscape;margin:8mm;}
+  body.has-print-sheet {display:block !important;height:auto !important;max-height:none !important;}
+  body.has-print-sheet > :not(#accessible-print-sheet) {display:none !important;}
+  body.has-print-sheet #accessible-print-sheet {display:block !important;width:273mm !important;height:193mm !important;max-width:100%;margin:0 auto;break-inside:avoid;}
+  .output-options,.sr-only,#unseated-panel {display:none !important;}
+  .seat-cell.is-locked {background:#fff !important;border-color:#475569 !important;}
+}
+
+
+
+.workflow-bar {display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:#eef2ff;font-size:13px}.workflow-bar button {padding:6px 12px}.workflow-bar button:disabled{opacity:.45}@media print{.workflow-bar{display:none!important}}
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span style="font-size: 1.5rem;">🪑</span>
+      <h1>スマート席替え</h1>
+      <span style="font-size: 0.75rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold;">Ver 2.1</span>
+    </div>
+    <div class="header-actions">
+      <button id="btn-toggle-perspective" class="btn-perspective" title="視点を反転（生徒目線:黒板が上 / 教師目線:黒板が下）">
+        <span id="perspective-icon">🎒</span>
+        <span id="perspective-label">生徒目線（黒板が上）</span>
+      </button>
+      <button id="btn-open-roster">📋 名簿設定</button>
+      <button id="btn-open-col-modal" title="列ごとの行数をまとめて設定">⚙️ 列の行数設定</button>
+      <button id="btn-open-group-modal" title="班の人数や区切り線の設定">👥 班設定</button>
+      <button id="btn-export-json" title="設定をJSONでバックアップ">💾 バックアップ</button>
+      <button id="btn-import-json-trigger" title="保存データを読込">📂 読込</button>
+      <input type="file" id="json-file-input" accept=".json" style="display: none;">
+      
+      <button id="btn-save-pdf" class="btn-pdf" title="座席表のPDFファイルを直接作成してダウンロード">
+        📄 PDFで保存
+      </button>
+      <button id="btn-print" class="btn-print" title="ブラウザの印刷ダイアログを開く">
+        🖨️ 印刷
+      </button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <div class="tool-item">
+        <label for="input-title">表題:</label>
+        <input type="text" id="input-title" value="座席表" placeholder="例: 3年7組 座席表">
+      </div>
+      <div class="tool-item">
+        <label for="input-cols">横（列）:</label>
+        <input type="number" id="input-cols" min="2" max="10" value="6">
+      </div>
+      <div class="tool-item">
+        <label for="input-default-rows">基本縦（行）:</label>
+        <input type="number" id="input-default-rows" min="2" max="12" value="6">
+      </div>
+      <div class="tool-item">
+        <label for="select-pairing">列の間隔:</label>
+        <select id="select-pairing">
+          <option value="none">均等配置</option>
+          <option value="pair" selected>2席ペア（標準）</option>
+          <option value="triplet">3席グループ</option>
+        </select>
+      </div>
+      <button id="btn-apply-layout" class="btn">レイアウト適用</button>
+    </div>
+
+    <div class="tool-group">
+      <!-- 班分けセレクター -->
+      <div class="tool-item">
+        <label for="select-group-mode">👥 班分け:</label>
+        <select id="select-group-mode">
+          <option value="none">なし（個人席）</option>
+          <option value="group-4">４人班（2列×2行）</option>
+          <option value="group-5">５人班（変則）</option>
+          <option value="group-6" selected>６人班（2列×3行）</option>
+          <option value="custom">カスタム（手動設定）</option>
+        </select>
+      </div>
+
+      <!-- ふりがな表示切り替え -->
+      <div class="tool-item" style="cursor: pointer;">
+        <label for="chk-show-ruby" style="cursor: pointer;">
+          <input type="checkbox" id="chk-show-ruby" checked style="cursor: pointer; margin-right: 4px;">ふりがな表示
+        </label>
+      </div>
+
+      <div class="tool-item">
+        <label for="select-order-dir">番号順:</label>
+        <select id="select-order-dir">
+          <option value="top-left-v" selected>左前・最前列から（縦・列送り）</option>
+          <option value="top-left-h">左前・最前列から（横送り）</option>
+          <option value="top-right-v">右前・最前列から（縦・列送り）</option>
+          <option value="top-right-h">右前・最前列から（横送り）</option>
+        </select>
+      </div>
+      <button id="btn-order-seats" class="btn" title="出席番号順に座席を整列">
+        🔢 整列
+      </button>
+
+      <button id="btn-shuffle" class="btn-primary" title="固定席以外の席をランダムに配置">
+        🎲 ランダム席替え
+      </button>
+      <button id="btn-clear-seats" title="全生徒の座席配置をクリア">
+        🧹 クリア
+      </button>
+    </div>
+  </div>
+
+  <div class="col-quick-settings-panel">
+    <span class="col-quick-title">各列の行数調整:</span>
+    <div id="column-controllers-container" class="column-controllers-container"></div>
+  </div>
+
+  <div id="group-divider-panel" class="col-quick-settings-panel" style="margin-top: 6px; background: #f0fdf4; border-color: #bbf7d0;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; width: 100%;">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span class="col-quick-title" style="color: #166534;">👥 班の太線（区切り）手動調整（1列ずつ調整・追加・削除可能）:</span>
+        <div id="group-divider-controllers-container" class="column-controllers-container"></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button id="btn-quick-reset-dividers" class="btn" style="font-size: 0.75rem; padding: 2px 8px; color: #166534;" title="現在の班分けモードの標準位置にリセット">太線を初期位置に戻す</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div id="stage-container" class="stage-container">
+      <div id="display-title" class="print-sheet-title">座席表</div>
+
+      <div id="front-area" class="classroom-front">
+        <div class="blackboard">黒　板</div>
+        <div class="teacher-desk">教　卓</div>
+      </div>
+
+      <div id="seating-stage" class="seating-stage"></div>
+
+      <div class="info-bar">
+        <span class="badge">登録生徒: <span id="stat-total-students">0</span>名</span>
+        <span class="badge">配置済み: <span id="stat-seated-students">0</span>名</span>
+        <span class="badge">空席: <span id="stat-empty-seats">0</span>席</span>
+        <span class="badge">固定席: <span id="stat-locked-seats">0</span>席</span>
+        <span class="badge" id="stat-group-badge">班分け: 6人班</span>
+        <span style="font-size: 0.8rem; color: #64748b;">※上の [▲/▼] で列ごとに行数を調整可能。タップで2点選択入れ替え（D&Dも対応）。</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- 列の行数設定モーダル -->
+  <div id="modal-col-rows" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>⚙️ 各列の行数設定</h2>
+        <button id="btn-close-col-modal" class="icon-btn" style="font-size: 1.2rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-text">
+          列ごとに行数（机の縦の数）を個別設定できます。<br>
+          「左の2列だけ7行、他は6行」などの変則的な教室配置に対応します。
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="btn-preset-all-same" class="btn" style="font-size: 0.8rem;">全列を基本行数（<span id="label-default-rows">6</span>行）にする</button>
+          <button id="btn-preset-left2-plus" class="btn" style="font-size: 0.8rem;">左2列のみ +1行</button>
+          <button id="btn-preset-right2-plus" class="btn" style="font-size: 0.8rem;">右2列のみ +1行</button>
+        </div>
+
+        <div id="col-rows-input-list" class="col-row-grid-setting"></div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-cancel-col-modal" class="btn">キャンセル</button>
+        <button id="btn-save-col-modal" class="btn-primary">変更を適用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 班設定モーダル -->
+  <div id="modal-group" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>👥 班設定（グループ分けと境界線）</h2>
+        <button id="btn-close-group-modal" class="icon-btn" style="font-size: 1.2rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-text">
+          各列ごとに何行目の下に境界線（太線）を入れるかを1列ずつ自由に設定できます。<br>
+          太線の移動（▲/▼）や追加・削除も自由に行え、変則的な班編成にも柔軟に対応します。
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+          <div style="font-weight: 700; font-size: 0.9rem;">ワンクリック班分けプリセット:</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="btn-set-group-4" class="btn">４人班（2行区切り）</button>
+            <button id="btn-set-group-5" class="btn">５人班（2〜3行区切り）</button>
+            <button id="btn-set-group-6" class="btn">６人班（3行区切り）</button>
+            <button id="btn-set-group-none" class="btn" style="color: #64748b;">班なし</button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
+          <div style="font-weight: 700; font-size: 0.9rem; color: #166534; display: flex; justify-content: space-between; align-items: center;">
+            <span>■ 各島の境界線（太線）位置を手動調整:</span>
+            <button id="btn-modal-reset-dividers" class="btn" style="font-size: 0.75rem; padding: 2px 8px;">初期位置に戻す</button>
+          </div>
+          <div id="modal-island-dividers-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.875rem; font-weight: 600;">
+            <input type="checkbox" id="chk-show-group-badge" checked> 各席に班番号バッジ（「1班」「2班」...）を表示する
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.875rem; font-weight: 600;">
+            <input type="checkbox" id="chk-show-group-line" checked> 席と席の間に班の境界線（太線）を表示する
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-close-group-modal-footer" class="btn-primary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 名簿設定モーダル -->
+  <div id="modal-roster" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📋 名簿設定</h2>
+        <button id="btn-close-roster" class="icon-btn" style="font-size: 1.2rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-text">
+          名簿をテキストエリアに貼り付けてください。<br>
+          ・推奨形式: <b>出席番号［タブ］氏名［タブ］ふりがな［タブ］性別</b><br>
+          ・ふりがなは <b>ひらがな・カタカナ</b>、または 括弧「（あいだ たくみ）」「（アイダ タクミ）」に対応<br>
+          ・Excelや校務支援システムからのコピー＆ペースト（タブ区切り・スペース区切り）に対応
+        </div>
+        <textarea id="roster-textarea" class="roster-input" placeholder="出席番号［タブ］氏名［タブ］ふりがな［タブ］性別"></textarea>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="btn-clear-roster" class="btn" style="font-size: 0.8rem; color: #ef4444;">クリア</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-cancel-roster" class="btn">キャンセル</button>
+        <button id="btn-save-roster" class="btn-primary">名簿を反映</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">メッセージ</div>
+
+  <script>
+    // 状態管理
+    const state = {
+      title: '座席表',
+      cols: 6,
+      defaultRows: 6,
+      colRows: [7, 7, 6, 6, 6, 6],
+      pairing: 'pair',
+      perspective: 'student', // 生徒目線: 黒板が上 / 教師目線: 黒板が下
+      groupMode: 'group-6',   // 'none', 'group-4', 'group-5', 'group-6', 'custom'
+      colDividers: null,      // 各列の太線区切り行配列: [[2], [2], [2], [2], [2], [2]] 等
+      showRuby: true,         // ふりがな表示
+      showGroupBadge: true,   // 班番号バッジ表示
+      showGroupLine: true,    // 席と席の間の境界線表示
+      students: [],
+      seats: {},
+      selectedSeatKey: null
+    };
+
+    const STORAGE_KEY = 'smart_seat_planner_data_v9';
+
+    const stageEl = document.getElementById('seating-stage');
+    const frontAreaEl = document.getElementById('front-area');
+    const colControllersContainer = document.getElementById('column-controllers-container');
+    const displayTitleEl = document.getElementById('display-title');
+    const inputTitle = document.getElementById('input-title');
+    const btnTogglePerspective = document.getElementById('btn-toggle-perspective');
+    const perspectiveIcon = document.getElementById('perspective-icon');
+    const perspectiveLabel = document.getElementById('perspective-label');
+    const inputCols = document.getElementById('input-cols');
+    const inputDefaultRows = document.getElementById('input-default-rows');
+    const selectPairing = document.getElementById('select-pairing');
+    const btnApplyLayout = document.getElementById('btn-apply-layout');
+    const selectGroupMode = document.getElementById('select-group-mode');
+    const chkShowRuby = document.getElementById('chk-show-ruby');
+    const selectOrderDir = document.getElementById('select-order-dir');
+    const btnOrderSeats = document.getElementById('btn-order-seats');
+    const btnShuffle = document.getElementById('btn-shuffle');
+    const btnClearSeats = document.getElementById('btn-clear-seats');
+    
+    const btnOpenRoster = document.getElementById('btn-open-roster');
+    const btnCloseRoster = document.getElementById('btn-close-roster');
+    const btnCancelRoster = document.getElementById('btn-cancel-roster');
+    const btnSaveRoster = document.getElementById('btn-save-roster');
+    const modalRoster = document.getElementById('modal-roster');
+    const rosterTextarea = document.getElementById('roster-textarea');
+    const btnClearRoster = document.getElementById('btn-clear-roster');
+    
+    const btnOpenColModal = document.getElementById('btn-open-col-modal');
+    const btnCloseColModal = document.getElementById('btn-close-col-modal');
+    const btnCancelColModal = document.getElementById('btn-cancel-col-modal');
+    const btnSaveColModal = document.getElementById('btn-save-col-modal');
+    const modalColRows = document.getElementById('modal-col-rows');
+    const colRowsInputList = document.getElementById('col-rows-input-list');
+    const labelDefaultRows = document.getElementById('label-default-rows');
+    const btnPresetAllSame = document.getElementById('btn-preset-all-same');
+    const btnPresetLeft2Plus = document.getElementById('btn-preset-left2-plus');
+    const btnPresetRight2Plus = document.getElementById('btn-preset-right2-plus');
+
+    const btnOpenGroupModal = document.getElementById('btn-open-group-modal');
+    const btnCloseGroupModal = document.getElementById('btn-close-group-modal');
+    const btnCloseGroupModalFooter = document.getElementById('btn-close-group-modal-footer');
+    const modalGroup = document.getElementById('modal-group');
+    const btnSetGroup4 = document.getElementById('btn-set-group-4');
+    const btnSetGroup5 = document.getElementById('btn-set-group-5');
+    const btnSetGroup6 = document.getElementById('btn-set-group-6');
+    const btnSetGroupNone = document.getElementById('btn-set-group-none');
+    const chkShowGroupBadge = document.getElementById('chk-show-group-badge');
+    const chkShowGroupLine = document.getElementById('chk-show-group-line');
+    const groupDividerPanel = document.getElementById('group-divider-panel');
+    const groupDividerControllersContainer = document.getElementById('group-divider-controllers-container');
+    const btnQuickResetDividers = document.getElementById('btn-quick-reset-dividers');
+    const btnModalResetDividers = document.getElementById('btn-modal-reset-dividers');
+    const modalIslandDividersList = document.getElementById('modal-island-dividers-list');
+    
+    const btnExportJson = document.getElementById('btn-export-json');
+    const btnImportJsonTrigger = document.getElementById('btn-import-json-trigger');
+    const jsonFileInput = document.getElementById('json-file-input');
+    const btnSavePdf = document.getElementById('btn-save-pdf');
+    const btnPrint = document.getElementById('btn-print');
+    const toastEl = document.getElementById('toast');
+
+    const statTotalStudents = document.getElementById('stat-total-students');
+    const statSeatedStudents = document.getElementById('stat-seated-students');
+    const statEmptySeats = document.getElementById('stat-empty-seats');
+    const statLockedSeats = document.getElementById('stat-locked-seats');
+    const statGroupBadge = document.getElementById('stat-group-badge');
+
+    function init() {
+      loadFromStorage();
+      bindEvents();
+      updatePerspectiveUI();
+      renderAll();
+    }
+
+    function bindEvents() {
+      inputTitle.addEventListener('input', (e) => {
+        state.title = e.target.value || '座席表';
+        displayTitleEl.textContent = state.title;
+        saveToStorage();
+      });
+
+      btnTogglePerspective.addEventListener('click', togglePerspective);
+      btnApplyLayout.addEventListener('click', applyLayoutChange);
+      inputCols.addEventListener('change', applyLayoutChange);
+      inputCols.addEventListener('keydown', (e) => { if (e.key === 'Enter') applyLayoutChange(); });
+      inputDefaultRows.addEventListener('change', applyLayoutChange);
+      inputDefaultRows.addEventListener('keydown', (e) => { if (e.key === 'Enter') applyLayoutChange(); });
+      selectPairing.addEventListener('change', applyLayoutChange);
+      
+      selectGroupMode.addEventListener('change', (e) => {
+        state.groupMode = e.target.value;
+        if (state.groupMode !== 'custom') {
+          state.colDividers = getDefaultDividers(state.groupMode, state.cols, state.colRows, state.defaultRows, state.pairing);
+        }
+        updateStatGroupBadge();
+        renderSeats();
+        renderGroupDividerControllers();
+        renderModalIslandDividers();
+        saveToStorage();
+        showToast('班分け設定を更新しました');
+      });
+
+      if (btnQuickResetDividers) {
+        btnQuickResetDividers.addEventListener('click', () => {
+          resetDividers(state.groupMode === 'custom' ? 'group-6' : state.groupMode);
+        });
+      }
+
+      if (btnModalResetDividers) {
+        btnModalResetDividers.addEventListener('click', () => {
+          resetDividers(state.groupMode === 'custom' ? 'group-6' : state.groupMode);
+        });
+      }
+
+      chkShowRuby.addEventListener('change', (e) => {
+        state.showRuby = e.target.checked;
+        renderSeats();
+        saveToStorage();
+      });
+
+      btnOrderSeats.addEventListener('click', orderSeatsByNumber);
+      btnShuffle.addEventListener('click', shuffleSeats);
+      btnClearSeats.addEventListener('click', clearAllSeats);
+
+      btnOpenRoster.addEventListener('click', openRosterModal);
+      btnCloseRoster.addEventListener('click', closeRosterModal);
+      btnCancelRoster.addEventListener('click', closeRosterModal);
+      btnSaveRoster.addEventListener('click', saveRosterFromModal);
+      btnClearRoster.addEventListener('click', () => { rosterTextarea.value = ''; });
+
+      btnOpenColModal.addEventListener('click', openColRowsModal);
+      btnCloseColModal.addEventListener('click', closeColRowsModal);
+      btnCancelColModal.addEventListener('click', closeColRowsModal);
+      btnSaveColModal.addEventListener('click', saveColRowsFromModal);
+      [modalRoster, modalColRows, modalGroup].forEach(m => {
+        if (m) {
+          m.addEventListener('click', (e) => {
+            if (e.target === m) m.classList.remove('active');
+          });
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          [modalRoster, modalColRows, modalGroup].forEach(m => {
+            if (m) m.classList.remove('active');
+          });
+        }
+      });
+      btnPresetAllSame.addEventListener('click', presetAllSame);
+      btnPresetLeft2Plus.addEventListener('click', presetLeft2Plus);
+      btnPresetRight2Plus.addEventListener('click', presetRight2Plus);
+
+      btnOpenGroupModal.addEventListener('click', () => {
+        renderModalIslandDividers();
+        modalGroup.classList.add('active');
+      });
+      btnCloseGroupModal.addEventListener('click', () => modalGroup.classList.remove('active'));
+      btnCloseGroupModalFooter.addEventListener('click', () => modalGroup.classList.remove('active'));
+      
+      btnSetGroup4.addEventListener('click', () => { setGroupMode('group-4'); });
+      btnSetGroup5.addEventListener('click', () => { setGroupMode('group-5'); });
+      btnSetGroup6.addEventListener('click', () => { setGroupMode('group-6'); });
+      btnSetGroupNone.addEventListener('click', () => { setGroupMode('none'); });
+
+      chkShowGroupBadge.addEventListener('change', (e) => {
+        state.showGroupBadge = e.target.checked;
+        renderSeats();
+        saveToStorage();
+      });
+
+      chkShowGroupLine.addEventListener('change', (e) => {
+        state.showGroupLine = e.target.checked;
+        renderSeats();
+        saveToStorage();
+      });
+
+      btnExportJson.addEventListener('click', exportJson);
+      btnImportJsonTrigger.addEventListener('click', () => jsonFileInput.click());
+      jsonFileInput.addEventListener('change', importJson);
+
+      btnSavePdf.addEventListener('click', generateAndDownloadPdf);
+      btnPrint.addEventListener('click', executePrint);
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.seat-cell') && !e.target.closest('header') && !e.target.closest('.toolbar') && !e.target.closest('.modal') && !e.target.closest('.col-quick-settings-panel')) {
+          if (state.selectedSeatKey) {
+            state.selectedSeatKey = null;
+            renderSeats();
+          }
+        }
+      });
+    }
+
+    function setGroupMode(mode) {
+      state.groupMode = mode;
+      if (mode !== 'custom') {
+        state.colDividers = getDefaultDividers(mode, state.cols, state.colRows, state.defaultRows, state.pairing);
+      }
+      selectGroupMode.value = mode;
+      updateStatGroupBadge();
+      renderSeats();
+      renderGroupDividerControllers();
+      renderModalIslandDividers();
+      saveToStorage();
+      showToast('班分けを適用しました');
+      modalGroup.classList.remove('active');
+    }
+
+    let toastTimeout = null;
+    function showToast(msg) {
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      toastTimeout = setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, 3000);
+    }
+
+    function executePrint() {
+      window.print();
+    }
+
+    // 視点の更新
+    // 生徒目線: 黒板が上、教卓が下
+    // 教師目線: 黒板が下、教卓が上
+    function updatePerspectiveUI() {
+      if (state.perspective === 'teacher') {
+        perspectiveIcon.textContent = '👨‍🏫';
+        perspectiveLabel.textContent = '教師目線（黒板が下）';
+        (stageEl.closest('.seat-scroll') || stageEl).after(frontAreaEl);
+        frontAreaEl.classList.add('perspective-teacher');
+        stageEl.classList.add('perspective-teacher');
+      } else {
+        perspectiveIcon.textContent = '🎒';
+        perspectiveLabel.textContent = '生徒目線（黒板が上）';
+        (stageEl.closest('.seat-scroll') || stageEl).before(frontAreaEl);
+        frontAreaEl.classList.remove('perspective-teacher');
+        stageEl.classList.remove('perspective-teacher');
+      }
+    }
+
+    function togglePerspective() {
+      state.perspective = (state.perspective === 'teacher') ? 'student' : 'teacher';
+      updatePerspectiveUI();
+      state.selectedSeatKey = null;
+      renderAll();
+      saveToStorage();
+      showToast(`視点を「${perspectiveLabel.textContent}」に切り替えました`);
+    }
+
+
+
+    function openColRowsModal() {
+      labelDefaultRows.textContent = state.defaultRows;
+      colRowsInputList.innerHTML = '';
+
+      for (let c = 0; c < state.cols; c++) {
+        const rows = state.colRows[c] || state.defaultRows;
+        const item = document.createElement('div');
+        item.className = 'col-row-item';
+        item.innerHTML = `
+          <span style="font-weight: 600;">第${c + 1}列:</span>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <input type="number" class="modal-col-input" data-col="${c}" min="1" max="12" value="${rows}" style="width: 50px; text-align: center; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px;">
+            <span style="font-size: 0.8rem; color: #64748b;">行</span>
+          </div>
+        `;
+        colRowsInputList.appendChild(item);
+      }
+
+      modalColRows.classList.add('active');
+    }
+
+    function closeColRowsModal() {
+      modalColRows.classList.remove('active');
+    }
+
+
+    function presetAllSame() {
+      const inputs = modalColRows.querySelectorAll('.modal-col-input');
+      inputs.forEach(input => input.value = state.defaultRows);
+    }
+
+
+
+    // 島（ペア・グループ）の判定
+    function getIsland(c) {
+      if (state.pairing === 'triplet') return Math.floor(c / 3);
+      if (state.pairing === 'none') return c;
+      return Math.floor(c / 2);
+    }
+
+    function getNumIslands() {
+      if (state.pairing === 'triplet') return Math.ceil(state.cols / 3);
+      if (state.pairing === 'none') return state.cols;
+      return Math.ceil(state.cols / 2);
+    }
+
+    function getIslandCols(islandIndex) {
+      const s = (state.pairing === 'triplet' ? islandIndex * 3 : (state.pairing === 'none' ? islandIndex : islandIndex * 2));
+      const e = Math.min(state.cols, (state.pairing === 'triplet' ? (islandIndex + 1) * 3 : (state.pairing === 'none' ? islandIndex + 1 : (islandIndex + 1) * 2)));
+      const list = [];
+      for (let c = s; c < e; c++) list.push(c);
+      return list;
+    }
+
+
+    function ensureColDividers() {
+      if (!state.colDividers || !Array.isArray(state.colDividers) || state.colDividers.length !== state.cols) {
+        // 以前のislandDividersが存在する場合はマイグレーション
+        if (state.islandDividers && Array.isArray(state.islandDividers)) {
+          state.colDividers = [];
+          for (let c = 0; c < state.cols; c++) {
+            const isld = getIsland(c);
+            state.colDividers.push((state.islandDividers[isld] || []).slice());
+          }
+        } else {
+          state.colDividers = getDefaultDividers(state.groupMode, state.cols, state.colRows, state.defaultRows, state.pairing);
+        }
+      }
+    }
+
+    // 班の割り当て計算（1列ごとの太線に対応）
+    function getSeatGroup(r, c) {
+      if (state.groupMode === 'none') return null;
+      ensureColDividers();
+
+      const island = getIsland(c);
+      let groupStart = 1;
+      for (let i = 0; i < island; i++) {
+        const icols = getIslandCols(i);
+        const maxG = Math.max(...icols.map(col => (state.colDividers[col] || []).length + 1));
+        groupStart += maxG;
+      }
+
+      const divs = (state.colDividers[c] || []).slice().sort((a, b) => a - b);
+      let inCol = 0;
+      for (let k = 0; k < divs.length; k++) {
+        if (r > divs[k]) inCol++;
+      }
+      return groupStart + inCol;
+    }
+
+    // その席の下に班境界線（太線）を引くべきか判定
+    function isGroupBoundaryAfter(r, c) {
+      if (state.groupMode === 'none' || !state.showGroupLine) return false;
+      const rowsInCol = state.colRows[c] || state.defaultRows;
+      if (r >= rowsInCol - 1) return false;
+
+      ensureColDividers();
+      const divs = state.colDividers[c] || [];
+      return divs.includes(r);
+    }
+
+    // 1列ごとの太線移動（delta: +1で1行下、-1で1行上）
+    function moveColDivider(colIndex, divIndex, delta) {
+      ensureColDividers();
+      const divs = (state.colDividers[colIndex] || []).slice().sort((a, b) => a - b);
+      if (divIndex < 0 || divIndex >= divs.length) return;
+
+      const currentR = divs[divIndex];
+      const newR = currentR + delta;
+      const maxR = state.colRows[colIndex] || state.defaultRows;
+
+      if (newR < 0) {
+        showToast('これ以上上には移動できません');
+        return;
+      }
+      if (newR >= maxR - 1) {
+        showToast('これ以上下には移動できません');
+        return;
+      }
+
+      if (divIndex > 0 && newR <= divs[divIndex - 1]) {
+        showToast('上の太線と重なるため移動できません');
+        return;
+      }
+      if (divIndex < divs.length - 1 && newR >= divs[divIndex + 1]) {
+        showToast('下の太線と重なるため移動できません');
+        return;
+      }
+
+      divs[divIndex] = newR;
+      state.colDividers[colIndex] = divs.sort((a, b) => a - b);
+      state.groupMode = 'custom';
+      selectGroupMode.value = 'custom';
+      updateStatGroupBadge();
+
+      renderSeats();
+      renderGroupDividerControllers();
+      renderModalIslandDividers();
+      saveToStorage();
+      showToast(`第${colIndex + 1}列の太線を${newR + 1}行目の下に移動しました`);
+    }
+
+    function moveColDividerVisual(colIndex, divIndex, visualDir) {
+      let delta = visualDir;
+      if (state.perspective === 'teacher') {
+        delta = -visualDir; // 教師視点では上方向が行インデックス大
+      }
+      moveColDivider(colIndex, divIndex, delta);
+    }
+
+    function moveColDividerFromCell(c, r, visualDir) {
+      ensureColDividers();
+      const divs = (state.colDividers[c] || []).slice().sort((a, b) => a - b);
+      const divIdx = divs.indexOf(r);
+      if (divIdx !== -1) {
+        moveColDividerVisual(c, divIdx, visualDir);
+      }
+    }
+
+    // 太線の自由追加
+    function addColDivider(colIndex, r) {
+      ensureColDividers();
+      const maxR = state.colRows[colIndex] || state.defaultRows;
+      if (r < 0 || r >= maxR - 1) {
+        showToast('列の末尾または範囲外には追加できません');
+        return;
+      }
+      const divs = (state.colDividers[colIndex] || []).slice();
+      if (!divs.includes(r)) {
+        divs.push(r);
+        divs.sort((a, b) => a - b);
+        state.colDividers[colIndex] = divs;
+        state.groupMode = 'custom';
+        selectGroupMode.value = 'custom';
+        updateStatGroupBadge();
+        renderSeats();
+        renderGroupDividerControllers();
+        renderModalIslandDividers();
+        saveToStorage();
+        showToast(`第${colIndex + 1}列の${r + 1}行目の下に太線を追加しました`);
+      }
+    }
+
+    function addColDividerDirect(c, r) {
+      addColDivider(c, r);
+    }
+
+    // 太線の自由削除
+    function removeColDivider(colIndex, divIndex) {
+      ensureColDividers();
+      const divs = (state.colDividers[colIndex] || []).slice().sort((a, b) => a - b);
+      if (divIndex >= 0 && divIndex < divs.length) {
+        const removedR = divs[divIndex];
+        divs.splice(divIndex, 1);
+        state.colDividers[colIndex] = divs;
+        state.groupMode = 'custom';
+        selectGroupMode.value = 'custom';
+        updateStatGroupBadge();
+        renderSeats();
+        renderGroupDividerControllers();
+        renderModalIslandDividers();
+        saveToStorage();
+        showToast(`第${colIndex + 1}列の${removedR + 1}行目下の太線を削除しました`);
+      }
+    }
+
+    function removeColDividerDirect(c, r) {
+      ensureColDividers();
+      const divs = (state.colDividers[c] || []).slice().sort((a, b) => a - b);
+      const divIdx = divs.indexOf(r);
+      if (divIdx !== -1) {
+        removeColDivider(c, divIdx);
+      }
+    }
+
+    function addDefaultColDivider(colIndex) {
+      const maxR = state.colRows[colIndex] || state.defaultRows;
+      const divs = (state.colDividers[colIndex] || []).slice().sort((a, b) => a - b);
+      let targetR = Math.max(0, Math.floor(maxR / 2) - 1);
+      if (divs.includes(targetR)) {
+        for (let candidate = 0; candidate < maxR - 1; candidate++) {
+          if (!divs.includes(candidate)) {
+            targetR = candidate;
+            break;
+          }
+        }
+      }
+      addColDivider(colIndex, targetR);
+    }
+
+    function resetDividers(mode) {
+      state.groupMode = mode || 'group-6';
+      state.colDividers = getDefaultDividers(state.groupMode, state.cols, state.colRows, state.defaultRows, state.pairing);
+      selectGroupMode.value = state.groupMode;
+      updateStatGroupBadge();
+      renderSeats();
+      renderGroupDividerControllers();
+      renderModalIslandDividers();
+      saveToStorage();
+      showToast('太線（区切り）を標準位置にリセットしました');
+    }
+
+    // 上部クイック調整バー（1列ごとに表示）
+    function renderGroupDividerControllers() {
+      if (!groupDividerPanel || !groupDividerControllersContainer) return;
+      if (state.groupMode === 'none' || !state.showGroupLine) {
+        groupDividerPanel.style.display = 'none';
+        return;
+      }
+      groupDividerPanel.style.display = 'block';
+      groupDividerControllersContainer.innerHTML = '';
+
+      ensureColDividers();
+
+      for (let c = 0; c < state.cols; c++) {
+        const box = document.createElement('div');
+        box.className = 'island-control-box';
+
+        const divs = state.colDividers[c] || [];
+
+        let innerHtml = `<span class="island-control-title">第${c + 1}列:</span>`;
+
+        if (divs.length === 0) {
+          innerHtml += `<span style="font-size: 0.75rem; color: #64748b;">線なし</span>
+            <button class="btn" style="font-size: 0.7rem; padding: 2px 6px; margin-left: 4px;" onclick="addDefaultColDivider(${c})">＋追加</button>`;
+        } else {
+          divs.forEach((r, divIdx) => {
+            const prefix = divs.length > 1 ? `線${divIdx + 1}:` : '';
+            innerHtml += `
+              <div class="island-stepper">
+                <span style="font-size: 0.75rem; color: #475569;">${prefix}</span>
+                <button class="col-step-btn" title="太線を1行上へ移動" onclick="moveColDividerVisual(${c}, ${divIdx}, -1)">▲</button>
+                <span class="island-divider-display">${r + 1}行目下</span>
+                <button class="col-step-btn" title="太線を1行下へ移動" onclick="moveColDividerVisual(${c}, ${divIdx}, 1)">▼</button>
+                <button class="divider-btn-del" title="この太線を削除" onclick="removeColDivider(${c}, ${divIdx})">✕</button>
+              </div>
+            `;
+          });
+          innerHtml += `<button class="btn" style="font-size: 0.7rem; padding: 2px 6px; margin-left: 2px;" title="太線を追加" onclick="addDefaultColDivider(${c})">＋</button>`;
+        }
+
+        box.innerHTML = innerHtml;
+        groupDividerControllersContainer.appendChild(box);
+      }
+    }
+
+    // 班設定モーダル内の一覧（1列ごとに調整・追加・削除可能）
+    function renderModalIslandDividers() {
+      if (!modalIslandDividersList) return;
+      ensureColDividers();
+      modalIslandDividersList.innerHTML = '';
+
+      for (let c = 0; c < state.cols; c++) {
+        const card = document.createElement('div');
+        card.style.cssText = 'background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 6px;';
+
+        const divs = state.colDividers[c] || [];
+        const maxR = state.colRows[c] || state.defaultRows;
+
+        let linesHtml = '';
+        if (divs.length === 0) {
+          linesHtml = `<div style="font-size: 0.8rem; color: #64748b;">現在、この列に区切り線はありません。</div>`;
+        } else {
+          divs.forEach((r, divIdx) => {
+            linesHtml += `
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; padding: 3px 0; border-bottom: 1px dotted #e2e8f0;">
+                <span>太線 ${divIdx + 1}: <b>${r + 1}行目</b>の下 (前: ${r + 1}行 / 後: ${maxR - (r + 1)}行)</span>
+                <div style="display: flex; gap: 4px;">
+                  <button class="btn" style="font-size: 0.75rem; padding: 2px 6px;" onclick="moveColDividerVisual(${c}, ${divIdx}, -1)" title="1行上へ">▲ 上へ</button>
+                  <button class="btn" style="font-size: 0.75rem; padding: 2px 6px;" onclick="moveColDividerVisual(${c}, ${divIdx}, 1)" title="1行下へ">▼ 下へ</button>
+                  <button class="btn" style="font-size: 0.75rem; padding: 2px 6px; color: #ef4444;" onclick="removeColDivider(${c}, ${divIdx})" title="線を削除">✕ 削除</button>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+            <span style="font-weight: 700; font-size: 0.85rem; color: #166534;">第${c + 1}列 (全${maxR}行)</span>
+            <button class="btn" style="font-size: 0.75rem; padding: 2px 6px; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" onclick="addDefaultColDivider(${c})">＋ 太線を追加</button>
+          </div>
+          <div>${linesHtml}</div>
+        `;
+        modalIslandDividersList.appendChild(card);
+      }
+    }
+
+    function updateStatGroupBadge() {
+      let groupText = '班なし';
+      if (state.groupMode === 'group-4') groupText = '４人班';
+      else if (state.groupMode === 'group-5') groupText = '５人班';
+      else if (state.groupMode === 'group-6') groupText = '６人班';
+      else if (state.groupMode === 'custom') {
+        let totalGroups = 0;
+        ensureColDividers();
+        const numIslands = getNumIslands();
+        for (let i = 0; i < numIslands; i++) {
+          const icols = getIslandCols(i);
+          totalGroups += Math.max(...icols.map(col => (state.colDividers[col] || []).length + 1));
+        }
+        groupText = `手動調整 (計${totalGroups}班)`;
+      }
+      statGroupBadge.textContent = `班分け: ${groupText}`;
+    }
+
+    // 出席番号順整列のためのキー取得
+    function getViewOrderedSeatKeys(direction) {
+      const cols = state.cols;
+      const keys = [];
+
+      if (direction === 'top-left-v') {
+        for (let c = 0; c < cols; c++) {
+          const rows = state.colRows[c] || state.defaultRows;
+          for (let r = 0; r < rows; r++) {
+            keys.push(`${r},${c}`);
+          }
+        }
+      } else if (direction === 'top-left-h') {
+        const maxRows = Math.max(...state.colRows);
+        for (let r = 0; r < maxRows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (r < (state.colRows[c] || state.defaultRows)) {
+              keys.push(`${r},${c}`);
+            }
+          }
+        }
+      } else if (direction === 'top-right-v') {
+        for (let c = cols - 1; c >= 0; c--) {
+          const rows = state.colRows[c] || state.defaultRows;
+          for (let r = 0; r < rows; r++) {
+            keys.push(`${r},${c}`);
+          }
+        }
+      } else if (direction === 'top-right-h') {
+        const maxRows = Math.max(...state.colRows);
+        for (let r = 0; r < maxRows; r++) {
+          for (let c = cols - 1; c >= 0; c--) {
+            if (r < (state.colRows[c] || state.defaultRows)) {
+              keys.push(`${r},${c}`);
+            }
+          }
+        }
+      }
+
+      return keys;
+    }
+
+
+
+    function clearAllSeats() {
+      if (!confirm('全生徒の座席配置をクリアしますか？（固定席も解除されます）')) return;
+
+      Object.keys(state.seats).forEach(key => {
+        state.seats[key].studentId = null;
+        state.seats[key].isLocked = false;
+      });
+
+      state.selectedSeatKey = null;
+      renderSeats();
+      saveToStorage();
+      showToast('座席配置をクリアしました');
+    }
+
+    function fitNameText(nameElement) {
+      if (!nameElement || !nameElement.textContent.trim()) return;
+
+      const cell = nameElement.closest('.seat-cell');
+      const cellH = cell ? cell.clientHeight : 66;
+
+      let fontSize = (cellH <= 52) ? 11 : (cellH <= 62 ? 12.5 : (cellH <= 70 ? 14 : 15));
+      const minFontSize = 8.5;
+
+      nameElement.style.fontSize = `${fontSize}px`;
+      nameElement.style.lineHeight = '1.15';
+      nameElement.style.whiteSpace = 'nowrap';
+
+      const parentWidth = nameElement.parentElement ? nameElement.parentElement.clientWidth : 96;
+      const targetMaxWidth = parentWidth - 4;
+
+      while ((nameElement.scrollWidth > targetMaxWidth) && fontSize > minFontSize) {
+        fontSize -= 0.5;
+        nameElement.style.fontSize = `${fontSize}px`;
+      }
+
+      if (nameElement.scrollWidth > targetMaxWidth) {
+        nameElement.style.whiteSpace = 'normal';
+        nameElement.style.wordBreak = 'break-all';
+        nameElement.style.fontSize = `${minFontSize}px`;
+      }
+    }
+
+    function renderColControllers() {
+      colControllersContainer.innerHTML = '';
+
+      const colIndices = [];
+      if (state.perspective === 'student') {
+        for (let c = 0; c < state.cols; c++) colIndices.push(c);
+      } else {
+        for (let c = state.cols - 1; c >= 0; c--) colIndices.push(c);
+      }
+
+      colIndices.forEach((c) => {
+        const box = document.createElement('div');
+        box.className = 'col-control-box';
+        const rows = state.colRows[c] || state.defaultRows;
+        box.innerHTML = `
+          <span class="col-control-title">第${c + 1}列:</span>
+          <div class="col-stepper">
+            <button class="col-step-btn" title="1行減らす" onclick="changeColRows(${c}, -1)">▼</button>
+            <span class="col-rows-display">${rows}行</span>
+            <button class="col-step-btn" title="1行増やす" onclick="changeColRows(${c}, 1)">▲</button>
+          </div>
+        `;
+        colControllersContainer.appendChild(box);
+      });
+    }
+
+    function renderSeats() {
+      stageEl.innerHTML = '';
+
+      // 行数に応じたクラスを seating-stage に付与（印刷時の高さ自動最適化用）
+      const maxRows = Math.max(...state.colRows);
+      stageEl.classList.remove('rows-le5', 'rows-6', 'rows-7', 'rows-ge8');
+      if (maxRows <= 5) stageEl.classList.add('rows-le5');
+      else if (maxRows === 6) stageEl.classList.add('rows-6');
+      else if (maxRows === 7) stageEl.classList.add('rows-7');
+      else stageEl.classList.add('rows-ge8');
+
+      const colIndices = [];
+      if (state.perspective === 'student') {
+        for (let c = 0; c < state.cols; c++) colIndices.push(c);
+      } else {
+        for (let c = state.cols - 1; c >= 0; c--) colIndices.push(c);
+      }
+
+      const elementsToFit = [];
+
+      colIndices.forEach((c, colIndexInView) => {
+        const colContainer = document.createElement('div');
+        colContainer.className = 'seat-column';
+
+        if (state.pairing === 'pair') {
+          if ((colIndexInView + 1) % 2 === 0 && colIndexInView !== state.cols - 1) {
+            colContainer.classList.add('pair-gap-right');
+          }
+        } else if (state.pairing === 'triplet') {
+          if ((colIndexInView + 1) % 3 === 0 && colIndexInView !== state.cols - 1) {
+            colContainer.classList.add('pair-gap-right');
+          }
+        }
+
+        const rowsInThisCol = state.colRows[c] || state.defaultRows;
+        const rowIndices = [];
+
+        if (state.perspective === 'student') {
+          for (let r = 0; r < rowsInThisCol; r++) rowIndices.push(r);
+        } else {
+          for (let r = rowsInThisCol - 1; r >= 0; r--) rowIndices.push(r);
+        }
+
+        rowIndices.forEach(r => {
+          const seatKey = `${r},${c}`;
+          const seatData = state.seats[seatKey] || { studentId: null, isLocked: false, isDisabled: false };
+          const student = seatData.studentId ? state.students.find(s => s.id === seatData.studentId) : null;
+          const groupNo = getSeatGroup(r, c);
+
+          const cell = document.createElement('div');
+          cell.className = 'seat-cell';
+          cell.dataset.seatKey = seatKey;
+
+          // 班の境界線の太線スタイル適用（1列ごとに判定＆操作）
+          if (isGroupBoundaryAfter(r, c)) {
+            if (state.perspective === 'student') {
+              cell.classList.add('group-border-bottom');
+            } else {
+              cell.classList.add('group-border-top');
+            }
+
+            // 各列の太線に移動（▲/▼）および削除（✕）ボタンを配置
+            const handle = document.createElement('div');
+            handle.className = 'divider-line-controls';
+            handle.title = '太線の移動・削除';
+            handle.innerHTML = `
+              <button class="divider-btn-step" title="この列の太線を1行上へ移動" onclick="event.stopPropagation(); moveColDividerFromCell(${c}, ${r}, -1);">▲</button>
+              <span class="divider-btn-label">太線</span>
+              <button class="divider-btn-step" title="この列の太線を1行下へ移動" onclick="event.stopPropagation(); moveColDividerFromCell(${c}, ${r}, 1);">▼</button>
+              <button class="divider-btn-del" title="この太線を削除" onclick="event.stopPropagation(); removeColDividerDirect(${c}, ${r});">✕</button>
+            `;
+            cell.appendChild(handle);
+          } else if (r < (state.colRows[c] || state.defaultRows) - 1 && state.groupMode !== 'none' && state.showGroupLine) {
+            // 太線がない境界には、ホバー時に追加（＋）できるボタンを配置
+            const addHandle = document.createElement('div');
+            addHandle.className = 'divider-add-handle';
+            addHandle.title = 'ここに太線を追加';
+            addHandle.textContent = '＋';
+            addHandle.onclick = (e) => {
+              e.stopPropagation();
+              addColDividerDirect(c, r);
+            };
+            cell.appendChild(addHandle);
+          }
+
+          if (seatData.isDisabled) {
+            cell.classList.add('is-disabled');
+          } else {
+            if (seatData.isLocked) cell.classList.add('is-locked');
+            if (state.selectedSeatKey === seatKey) cell.classList.add('is-selected');
+
+            if (student) {
+              if (student.gender === 'male') cell.classList.add('gender-male');
+              else if (student.gender === 'female') cell.classList.add('gender-female');
+            }
+          }
+
+          if (!seatData.isDisabled) {
+            cell.draggable = true;
+          }
+
+          const headerEl = document.createElement('div');
+          headerEl.className = 'seat-header';
+
+          const headerLeftEl = document.createElement('div');
+          headerLeftEl.className = 'seat-header-left';
+
+          const numberEl = document.createElement('span');
+          numberEl.className = 'seat-number';
+          numberEl.textContent = student ? `No.${student.no}` : `${r + 1}-${c + 1}`;
+          headerLeftEl.appendChild(numberEl);
+
+          // 班番号バッジ
+          if (groupNo && state.showGroupBadge && !seatData.isDisabled) {
+            const groupBadge = document.createElement('span');
+            groupBadge.className = 'seat-group-badge';
+            groupBadge.textContent = `${groupNo}班`;
+            headerLeftEl.appendChild(groupBadge);
+          }
+          headerEl.appendChild(headerLeftEl);
+
+          const actionsEl = document.createElement('div');
+          actionsEl.className = 'seat-actions';
+
+          const lockBtn = document.createElement('button');
+          lockBtn.className = 'icon-btn';
+          lockBtn.title = seatData.isLocked ? '固定を解除' : 'この席を固定';
+          lockBtn.textContent = seatData.isLocked ? '🔒' : '🔓';
+          lockBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleLock(seatKey);
+          });
+          actionsEl.appendChild(lockBtn);
+
+          const disableBtn = document.createElement('button');
+          disableBtn.className = 'icon-btn';
+          disableBtn.title = '通路/空席に設定';
+          disableBtn.textContent = '❌';
+          disableBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDisable(seatKey);
+          });
+          actionsEl.appendChild(disableBtn);
+
+          headerEl.appendChild(actionsEl);
+          cell.appendChild(headerEl);
+
+          const nameContainer = document.createElement('div');
+          nameContainer.className = 'seat-name-container';
+
+          if (student) {
+            // ふりがな表示
+            if (state.showRuby && student.kana) {
+              const rubyEl = document.createElement('div');
+              rubyEl.className = 'seat-ruby';
+              rubyEl.textContent = student.kana;
+              nameContainer.appendChild(rubyEl);
+            }
+
+            const nameEl = document.createElement('div');
+            nameEl.className = 'seat-name';
+            nameEl.textContent = student.name;
+            nameContainer.appendChild(nameEl);
+            elementsToFit.push(nameEl);
+          } else {
+            const emptyEl = document.createElement('div');
+            emptyEl.className = 'seat-empty';
+            emptyEl.textContent = '空席';
+            nameContainer.appendChild(emptyEl);
+          }
+          cell.appendChild(nameContainer);
+
+          cell.addEventListener('click', () => handleSeatClick(seatKey));
+          cell.addEventListener('dragstart', handleDragStart);
+          cell.addEventListener('dragover', handleDragOver);
+          cell.addEventListener('dragleave', handleDragLeave);
+          cell.addEventListener('drop', handleDrop);
+          cell.addEventListener('dragend', handleDragEnd);
+
+          colContainer.appendChild(cell);
+        });
+
+        stageEl.appendChild(colContainer);
+      });
+
+      elementsToFit.forEach(el => fitNameText(el));
+      updateStats();
+    }
+
+
+
+    function ensureSeatExists(key) {
+      if (!state.seats[key]) {
+        state.seats[key] = { studentId: null, isLocked: false, isDisabled: false };
+      }
+    }
+
+    let draggedSeatKey = null;
+
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (!this.classList.contains('drag-over')) {
+        this.classList.add('drag-over');
+      }
+    }
+
+    function handleDragLeave() {
+      this.classList.remove('drag-over');
+    }
+
+
+    function handleDragEnd() {
+      this.classList.remove('is-dragging');
+      document.querySelectorAll('.seat-cell.drag-over').forEach(el => el.classList.remove('drag-over'));
+      draggedSeatKey = null;
+    }
+
+    function toggleLock(seatKey) {
+      ensureSeatExists(seatKey);
+      state.seats[seatKey].isLocked = !state.seats[seatKey].isLocked;
+      renderSeats();
+      saveToStorage();
+    }
+
+
+    function updateStats() {
+      statTotalStudents.textContent = state.students.length;
+
+      let seated = 0;
+      let empty = 0;
+      let locked = 0;
+
+      for (let c = 0; c < state.cols; c++) {
+        const rowsInCol = state.colRows[c] || state.defaultRows;
+        for (let r = 0; r < rowsInCol; r++) {
+          const key = `${r},${c}`;
+          const seat = state.seats[key];
+          if (seat && !seat.isDisabled) {
+            if (seat.studentId) seated++;
+            else empty++;
+            if (seat.isLocked) locked++;
+          }
+        }
+      }
+
+      statSeatedStudents.textContent = seated;
+      statEmptySeats.textContent = empty;
+      statLockedSeats.textContent = locked;
+
+      updateStatGroupBadge();
+    }
+
+
+    function closeRosterModal() {
+      modalRoster.classList.remove('active');
+    }
+
+
+
+
+    // PDFファイルを生成して保存（修復・強化版）
+    function generateAndDownloadPdf() {
+      showToast('📄 PDFファイルを生成中...');
+
+      try {
+        const canvas = document.createElement('canvas');
+        const W = 2339;
+        const H = 1654;
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 64px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(state.title || '座席表', W / 2, 85);
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'right';
+        const dateStr = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+        const perspStr = state.perspective === 'teacher' ? '教師目線（黒板が下）' : '生徒目線（黒板が上）';
+        const groupStr = state.groupMode !== 'none' ? ` [${statGroupBadge.textContent}]` : '';
+        ctx.fillText(`${dateStr} (${perspStr})${groupStr}`, W - 80, 80);
+
+        const cols = state.cols;
+        const maxRows = Math.max(...state.colRows);
+        
+        // 印刷可能領域（用紙の端ギリギリを避け、上下左右にゆとりを持たせる）
+        const gridTop = (state.perspective === 'student') ? 240 : 150;
+        const gridBottom = (state.perspective === 'student') ? (H - 110) : (H - 200);
+        const availableH = gridBottom - gridTop;
+        const availableW = W - 240; // 左右に120pxずつの安全マージン
+
+        const gapX = 14;
+        // 縦方向の席同士の余白を十分に確保（行数に応じて最適なギャップを計算）
+        const gapY = (maxRows <= 5) ? 28 : (maxRows === 6 ? 22 : 16);
+        const pairExtraX = (state.pairing === 'pair') ? 28 : 0;
+        const pairCount = Math.floor((cols - 1) / 2);
+        
+        const cellW = (availableW - ((cols - 1) * gapX) - (pairCount * pairExtraX)) / cols;
+        const cellH = Math.min(145, (availableH - ((maxRows - 1) * gapY)) / maxRows);
+
+        const totalGridW = (cols * cellW) + ((cols - 1) * gapX) + (pairCount * pairExtraX);
+        const startX = (W - totalGridW) / 2;
+
+        const frontY = (state.perspective === 'student') ? 115 : (H - 135);
+        
+        ctx.fillStyle = '#1e392a';
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 4;
+        const bbW = Math.min(850, totalGridW * 0.75);
+        const bbH = 46;
+        const bbX = (W - bbW) / 2;
+        const bbY = (state.perspective === 'student') ? frontY : (frontY + 48);
+
+        ctx.fillRect(bbX, bbY, bbW, bbH);
+        ctx.strokeRect(bbX, bbY, bbW, bbH);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('黒　板', W / 2, bbY + 33);
+
+        const deskW = 160;
+        const deskH = 32;
+        const deskY = (state.perspective === 'student') ? (bbY + bbH + 8) : frontY;
+        ctx.fillStyle = '#b45309';
+        ctx.fillRect((W - deskW) / 2, deskY, deskW, deskH);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText('教　卓', W / 2, deskY + 23);
+
+        const colIndices = [];
+        if (state.perspective === 'student') {
+          for (let c = 0; c < state.cols; c++) colIndices.push(c);
+        } else {
+          for (let c = state.cols - 1; c >= 0; c--) colIndices.push(c);
+        }
+
+        let currentX = startX;
+        colIndices.forEach((c, colIdxInView) => {
+          const rowsInThisCol = state.colRows[c] || state.defaultRows;
+          const rowIndices = [];
+
+          if (state.perspective === 'student') {
+            for (let r = 0; r < rowsInThisCol; r++) rowIndices.push(r);
+          } else {
+            for (let r = rowsInThisCol - 1; r >= 0; r--) rowIndices.push(r);
+          }
+
+          const colTotalH = (rowsInThisCol * cellH) + ((rowsInThisCol - 1) * gapY);
+          const colStartY = (state.perspective === 'student') ? gridTop : (gridBottom - colTotalH);
+
+          rowIndices.forEach((r, rowIdxInView) => {
+            const currentY = colStartY + (rowIdxInView * (cellH + gapY));
+            const seatKey = `${r},${c}`;
+            const seatData = state.seats[seatKey] || {};
+            const student = seatData.studentId ? state.students.find(s => s.id === seatData.studentId) : null;
+            const groupNo = getSeatGroup(r, c);
+
+            let bgColor = '#ffffff';
+            let borderColor = '#000000';
+
+            if (seatData.isDisabled) {
+              bgColor = '#f1f5f9';
+              borderColor = '#94a3b8';
+            } else if (seatData.isLocked) {
+              bgColor = '#fef3c7';
+              borderColor = '#f59e0b';
+            } else if (student) {
+              if (student.gender === 'male') {
+                bgColor = '#eff6ff';
+                borderColor = '#93c5fd';
+              } else if (student.gender === 'female') {
+                bgColor = '#fdf2f8';
+                borderColor = '#f472b6';
+              }
+            }
+
+            ctx.fillStyle = bgColor;
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.roundRect(currentX, currentY, cellW, cellH, 12);
+            ctx.fill();
+            ctx.stroke();
+
+            // 班境界線の描画（席と席の間に太線を引く）
+            if (isGroupBoundaryAfter(r, c)) {
+              ctx.strokeStyle = '#0f172a';
+              ctx.lineWidth = 5;
+              const lineY = (state.perspective === 'student') ? (currentY + cellH + gapY / 2) : (currentY - gapY / 2);
+              ctx.beginPath();
+              ctx.moveTo(currentX - 4, lineY);
+              ctx.lineTo(currentX + cellW + 4, lineY);
+              ctx.stroke();
+            }
+
+            if (!seatData.isDisabled) {
+              ctx.fillStyle = '#64748b';
+              ctx.font = 'bold 22px sans-serif';
+              ctx.textAlign = 'left';
+              const numStr = student ? `No.${student.no}` : `${r + 1}-${c + 1}`;
+              ctx.fillText(numStr, currentX + 14, currentY + 30);
+
+              // 班番号バッジ描画
+              if (groupNo && state.showGroupBadge) {
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.roundRect(currentX + cellW - 60, currentY + 10, 48, 24, 4);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 15px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${groupNo}班`, currentX + cellW - 36, currentY + 27);
+              }
+
+              if (seatData.isLocked) {
+                ctx.font = '20px sans-serif';
+                ctx.fillText('🔒', currentX + cellW - 85, currentY + 30);
+              }
+
+              if (student) {
+                // ふりがな描画
+                if (state.showRuby && student.kana) {
+                  ctx.fillStyle = '#64748b';
+                  ctx.font = '16px sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.fillText(student.kana, currentX + cellW / 2, currentY + cellH / 2 - 2);
+                }
+
+                ctx.fillStyle = '#0f172a';
+                ctx.textAlign = 'center';
+                
+                const name = student.name;
+                let fontSize = 30;
+                if (name.length >= 8) fontSize = 20;
+                else if (name.length >= 6) fontSize = 24;
+                ctx.font = `bold ${fontSize}px sans-serif`;
+
+                const nameY = (state.showRuby && student.kana) ? (currentY + cellH / 2 + 28) : (currentY + cellH / 2 + 16);
+                ctx.fillText(name, currentX + cellW / 2, nameY);
+              } else {
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '24px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('空席', currentX + cellW / 2, currentY + cellH / 2 + 16);
+              }
+            } else {
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '22px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('✕ 空席', currentX + cellW / 2, currentY + cellH / 2 + 10);
+            }
+          });
+
+          currentX += cellW + gapX;
+          if (state.pairing === 'pair' && (colIdxInView + 1) % 2 === 0) {
+            currentX += pairExtraX;
+          }
+        });
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const base64Data = dataUrl.split(',')[1];
+        const binaryStr = atob(base64Data);
+        const len = binaryStr.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+
+        const pdfBytes = buildPdfBinary(bytes, 841.89, 595.28, W, H);
+
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const filename = `${state.title || '座席表'}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showToast(`✅「${filename}」をダウンロードしました`);
+      } catch (err) {
+        console.error('PDF Generation failed:', err);
+        alert('PDFの直接生成中にエラーが発生しました。ブラウザの「🖨️ 印刷」ボタンから「PDFとして保存」をご利用ください。');
+      }
+    }
+
+    // PDFバイナリ構築関数（改行0x0Aを厳密にエンコード）
+    function buildPdfBinary(jpgBytes, widthPt, heightPt, imgW, imgH) {
+      const enc = new TextEncoder();
+      
+      const header = enc.encode("%PDF-1.4\n");
+      const obj1 = enc.encode("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+      const obj2 = enc.encode("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+      const obj3 = enc.encode(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${widthPt.toFixed(2)} ${heightPt.toFixed(2)}] /Resources << /XObject << /Im0 4 0 R >> /ProcSet [/PDF /ImageC] >> /Contents 5 0 R >>\nendobj\n`);
+      const obj4Header = enc.encode(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imgW} /Height ${imgH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpgBytes.length} >>\nstream\n`);
+      const obj4Footer = enc.encode("\nendstream\nendobj\n");
+      
+      const contentStr = `q\n${widthPt.toFixed(2)} 0 0 ${heightPt.toFixed(2)} 0 0 cm\n/Im0 Do\nQ\n`;
+      const contentBytes = enc.encode(contentStr);
+      const obj5 = enc.encode(`5 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n${contentStr}endstream\nendobj\n`);
+
+      const offsets = [0];
+      let currentLen = header.length;
+      const chunks = [header];
+
+      offsets.push(currentLen);
+      chunks.push(obj1);
+      currentLen += obj1.length;
+
+      offsets.push(currentLen);
+      chunks.push(obj2);
+      currentLen += obj2.length;
+
+      offsets.push(currentLen);
+      chunks.push(obj3);
+      currentLen += obj3.length;
+
+      offsets.push(currentLen);
+      chunks.push(obj4Header);
+      chunks.push(jpgBytes);
+      chunks.push(obj4Footer);
+      currentLen += obj4Header.length + jpgBytes.length + obj4Footer.length;
+
+      offsets.push(currentLen);
+      chunks.push(obj5);
+      currentLen += obj5.length;
+
+      const xrefOffset = currentLen;
+      let xrefStr = "xref\n0 6\n0000000000 65535 f \n";
+      for (let i = 1; i <= 5; i++) {
+        const offStr = String(offsets[i]).padStart(10, '0');
+        xrefStr += `${offStr} 00000 n \n`;
+      }
+      xrefStr += `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+      chunks.push(enc.encode(xrefStr));
+
+      let totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
+      const out = new Uint8Array(totalLen);
+      let pos = 0;
+      chunks.forEach(c => {
+        out.set(c, pos);
+        pos += c.length;
+      });
+      return out;
+    }
+
+
+
+
+
+    function renderAll() {
+      displayTitleEl.textContent = state.title || '座席表';
+      renderColControllers();
+      renderGroupDividerControllers();
+      renderSeats();
+    }
+
+// Layout changes and in-memory undo. No pupil information is written by history.
+function tidyLayout() {
+  Object.keys(state.seats).forEach(key => {
+    const [r, c] = key.split(',').map(Number);
+    if (c >= state.cols || r >= state.colRows[c]) delete state.seats[key];
+  });
+  const old = state.colDividers || [];
+  state.colDividers = Array.from({length: state.cols}, (_, c) =>
+    [...new Set(old[c] || [])].filter(r => Number.isInteger(r) && r >= 0 && r < state.colRows[c] - 1).sort((a,b) => a-b));
+  state.selectedSeatKey = null;
+}
+function applyLayoutChange() {
+  const cols = Number(inputCols.value), rows = Number(inputDefaultRows.value);
+  if (!Number.isInteger(cols) || cols < 2 || cols > 10 || !Number.isInteger(rows) || rows < 2 || rows > 12) {
+    alert('列数は2〜10、基本行数は2〜12の整数で入力してください。'); return;
+  }
+  const changedRows = rows !== state.defaultRows;
+  state.colRows = Array.from({length: cols}, (_, c) => changedRows ? rows : (state.colRows[c] || rows));
+  state.cols = cols; state.defaultRows = rows; state.pairing = selectPairing.value;
+  tidyLayout(); renderAll(); saveToStorage();
+  showToast('レイアウトを更新しました。外れた生徒は未配置一覧で確認できます。');
+}
+function changeColRows(colIdx, delta) {
+  state.colRows[colIdx] = Math.max(1, Math.min(12, state.colRows[colIdx] + delta));
+  tidyLayout(); renderAll(); saveToStorage();
+}
+function saveColRowsFromModal() {
+  const values = [...modalColRows.querySelectorAll('.modal-col-input')].map(input => Number(input.value));
+  if (values.some(n => !Number.isInteger(n) || n < 1 || n > 12)) {
+    alert('各列の行数を1〜12の整数で入力してください。'); return;
+  }
+  state.colRows = values; tidyLayout(); closeColRowsModal(); renderAll(); saveToStorage();
+  showToast('各列の行数を更新しました。');
+}
+function presetLeft2Plus() {
+  modalColRows.querySelectorAll('.modal-col-input').forEach(input => {
+    const c = Number(input.dataset.col);
+    const left = state.perspective === 'teacher' ? c >= state.cols - 2 : c < 2;
+    input.value = Math.min(12, state.defaultRows + (left ? 1 : 0));
+  });
+}
+function presetRight2Plus() {
+  modalColRows.querySelectorAll('.modal-col-input').forEach(input => {
+    const c = Number(input.dataset.col);
+    const right = state.perspective === 'teacher' ? c < 2 : c >= state.cols - 2;
+    input.value = Math.min(12, state.defaultRows + (right ? 1 : 0));
+  });
+}
+function getDefaultDividers(mode, cols, colRows, defaultRows, pairing) {
+  return Array.from({length: cols}, (_, c) => {
+    const rows = colRows?.[c] || defaultRows;
+    const out = [];
+    if (mode === 'group-4' || mode === 'group-6') {
+      const step = mode === 'group-4' ? 2 : 3;
+      for (let r = step - 1; r < rows - 1; r += step) out.push(r);
+    } else if (mode === 'group-5') {
+      // Alternating 2/3 and 3/2 rows in each pair gives five seats per full block.
+      let used = 0, block = 0;
+      while (true) {
+        used += (c + block) % 2 === 0 ? 2 : 3;
+        if (used >= rows) break;
+        out.push(used - 1); block++;
+      }
+    }
+    return out;
+  });
+}
+function setupClassroomWorkflow() {
+  inputTitle.maxLength = 100;
+  const scroll = document.createElement('div'); scroll.className = 'seat-scroll';
+  scroll.setAttribute('role', 'region'); scroll.setAttribute('aria-label', '座席表（横にスクロールできます）'); scroll.tabIndex = 0;
+  stageEl.before(scroll); scroll.append(stageEl);
+  const resizeStage = () => { stageEl.style.minWidth = `${state.cols * 142}px`; };
+  new MutationObserver(resizeStage).observe(stageEl, {childList:true}); resizeStage();
+  const editLabel = document.createElement('label'); editLabel.className = 'divider-edit-option';
+  const edit = document.createElement('input'); edit.type = 'checkbox';
+  editLabel.append(edit, ' 班境界を編集する（席上の操作ボタンを表示）');
+  document.querySelector('.output-options').append(editLabel);
+  edit.addEventListener('change', () => document.body.classList.toggle('editing-dividers',edit.checked));
+  document.querySelectorAll('#select-group-mode option').forEach(o => {if(o.value.startsWith('group-')) o.textContent += ' ※人数は目安';});
+  const bar = document.createElement('div');
+  bar.className = 'workflow-bar';
+  bar.innerHTML = '<button type="button" id="btn-undo">元に戻す</button><button type="button" id="btn-redo">やり直す</button><span>操作履歴はこの画面を開いている間だけ保持します（最大30件）。</span>';
+  document.querySelector('header').after(bar);
+  const undo = bar.querySelector('#btn-undo'), redo = bar.querySelector('#btn-redo');
+  const snapshot = () => JSON.stringify({...state, selectedSeatKey: null});
+  let past = [], future = [], current = snapshot(), restoring = false;
+  const update = () => { undo.disabled = !past.length; redo.disabled = !future.length; };
+  const persist = saveToStorage;
+  saveToStorage = function() {
+    if (!restoring) {
+      const next = snapshot();
+      if (next !== current) { past.push(current); if (past.length > 30) past.shift(); current = next; future = []; }
+      update();
+    }
+    return persist();
+  };
+  function restore(from, to) {
+    if (!from.length) return;
+    to.push(current); current = from.pop();
+    const restored = JSON.parse(current);
+    Object.keys(state).forEach(k => delete state[k]); Object.assign(state, restored);
+    inputTitle.value = state.title; inputCols.value = state.cols; inputDefaultRows.value = state.defaultRows;
+    selectPairing.value = state.pairing; selectGroupMode.value = state.groupMode;
+    chkShowRuby.checked = state.showRuby; chkShowGroupBadge.checked = state.showGroupBadge; chkShowGroupLine.checked = state.showGroupLine;
+    updatePerspectiveUI(); renderAll();
+    restoring = true; try { saveToStorage(); } finally { restoring = false; }
+    window.dispatchEvent(new Event('seatplanner:history'));
+    update(); showToast('操作履歴を反映しました。');
+  }
+  undo.addEventListener('click', () => restore(past, future));
+  redo.addEventListener('click', () => restore(future, past));
+  window.addEventListener('seatplanner:restored', () => { past = []; future = []; current = snapshot(); update(); });
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input,textarea,select,[contenteditable="true"]') || document.querySelector('.modal.active')) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo.click() : undo.click(); }
+  });
+  update();
+}
+
+// Versioned, validated local data. No network requests or dependencies.
+const DATA_STORAGE_KEY = 'smart_seat_planner_v21';
+const DATA_PREF_KEY = 'smart_seat_planner_local_save';
+const DATA_OLD_KEYS = ['smart_seat_planner_v20', STORAGE_KEY, 'smart_seat_planner_data_v8', 'smart_seat_planner_data_v7', 'smart_seat_planner_data_v6'];
+const DATA_MAX_BYTES = 1024 * 1024;
+let localSaveEnabled = false;
+let dataSaveMessage = '端末保存OFF：終了前にJSONバックアップを保存してください。';
+
+function validatePlannerData(payload) {
+  const fail = message => { throw new Error(message); };
+  const obj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+  if (!obj(payload)) fail('JSONの先頭はオブジェクトである必要があります。');
+  if (payload.schemaVersion !== undefined && payload.schemaVersion !== 1) fail('未対応のバックアップ形式です。');
+  const d = payload.data === undefined ? payload : payload.data;
+  if (!obj(d)) fail('座席データが見つかりません。');
+  const integer = (v, low, high, label) => {
+    if (!Number.isInteger(v) || v < low || v > high) fail(`${label}は${low}〜${high}の整数にしてください。`);
+    return v;
+  };
+  const string = (v, max, label, empty = true) => {
+    if (typeof v !== 'string' || v.length > max || (!empty && !v.trim()) || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(v)) fail(`${label}の文字列が不正です。`);
+    return v;
+  };
+  const choice = (v, choices, fallback, label) => {
+    if (v === undefined) return fallback;
+    if (!choices.includes(v)) fail(`${label}の値が不正です。`);
+    return v;
+  };
+  const bool = (v, fallback, label) => {
+    if (v === undefined) return fallback;
+    if (typeof v !== 'boolean') fail(`${label}は真偽値で指定してください。`);
+    return v;
+  };
+  const cols = integer(d.cols, 2, 10, '列数');
+  const defaultRows = integer(d.defaultRows === undefined ? 6 : d.defaultRows, 2, 12, '基本行数');
+  const colRows = d.colRows === undefined ? Array(cols).fill(defaultRows) : d.colRows;
+  if (!Array.isArray(colRows) || colRows.length !== cols) fail('列別行数と列数が一致しません。');
+  const out = {
+    title: string(d.title === undefined ? '座席表' : d.title, 100, '表題'), cols, defaultRows,
+    colRows: colRows.map(v => integer(v, 1, 12, '列別行数')),
+    pairing: choice(d.pairing, ['none', 'pair', 'triplet'], 'pair', '列間隔'),
+    perspective: choice(d.perspective, ['student', 'teacher'], 'student', '視点'),
+    groupMode: choice(d.groupMode, ['none', 'group-4', 'group-5', 'group-6', 'custom'], 'group-6', '班設定'),
+    showRuby: bool(d.showRuby, true, 'ふりがな表示'),
+    showGroupBadge: bool(d.showGroupBadge, true, '班番号表示'),
+    showGroupLine: bool(d.showGroupLine, true, '班境界表示'),
+    showGenderColors: bool(d.showGenderColors, false, '性別色分け'),
+    students: [], seats: {}, colDividers: [], selectedSeatKey: null
+  };
+  if (!Array.isArray(d.students) || d.students.length > 120) fail('名簿は120人以内の配列にしてください。');
+  const ids = new Set(), numbers = new Set();
+  out.students = d.students.map(s => {
+    if (!obj(s)) fail('名簿の形式が不正です。');
+    const id = integer(s.id, 1, 9999, '児童生徒ID');
+    const no = integer(s.no, 1, 9999, '出席番号');
+    if (ids.has(id) || numbers.has(no)) fail('児童生徒IDまたは出席番号が重複しています。');
+    ids.add(id); numbers.add(no);
+    return { id, no, name: string(s.name, 100, '氏名', false), kana: string(s.kana === undefined ? '' : s.kana, 150, 'ふりがな'), gender: choice(s.gender, ['male', 'female', 'other'], 'other', '性別') };
+  });
+  if (!obj(d.seats) || Object.keys(d.seats).length > 120) fail('座席データの形式が不正です。');
+  const placed = new Set();
+  for (const [key, seat] of Object.entries(d.seats)) {
+    if (!/^(0|[1-9]\d*),(0|[1-9]\d*)$/.test(key) || !obj(seat)) fail('座席座標の形式が不正です。');
+    const [r, c] = key.split(',').map(Number);
+    if (c >= cols || r >= out.colRows[c]) fail('教室の範囲外に座席があります。');
+    const id = seat.studentId === undefined ? null : seat.studentId;
+    if (id !== null && (!ids.has(id) || placed.has(id))) fail('存在しない児童生徒、または同じ児童生徒の重複配置があります。');
+    const isLocked = bool(seat.isLocked, false, '固定席');
+    const isDisabled = bool(seat.isDisabled, false, '使用しない席');
+    if (isDisabled && (id !== null || isLocked)) fail('使用しない席に児童生徒または固定設定があります。');
+    if (id !== null) placed.add(id);
+    out.seats[key] = { studentId: id, isLocked, isDisabled };
+  }
+  let dividers = d.colDividers;
+  if (dividers == null && d.islandDividers != null) {
+    const width = out.pairing === 'triplet' ? 3 : out.pairing === 'pair' ? 2 : 1;
+    if (!Array.isArray(d.islandDividers) || d.islandDividers.length !== Math.ceil(cols / width)) fail('旧形式の班境界の数が不正です。');
+    dividers = Array.from({ length: cols }, (_, c) => d.islandDividers[Math.floor(c / width)]);
+  }
+  if (dividers == null) dividers = getDefaultDividers(out.groupMode, cols, out.colRows, defaultRows, out.pairing).map((list, c) => list.filter(r => r < out.colRows[c] - 1));
+  if (!Array.isArray(dividers) || dividers.length !== cols) fail('班境界の列数が一致しません。');
+  out.colDividers = dividers.map((list, c) => {
+    if (!Array.isArray(list) || list.length > 12) fail('班境界の形式が不正です。');
+    const unique = new Set();
+    return list.map(r => {
+      integer(r, 0, out.colRows[c] - 2, '班境界');
+      if (unique.has(r)) fail('班境界が重複しています。');
+      unique.add(r); return r;
+    }).sort((a, b) => a - b);
+  });
+  return out;
+}
+
+function parsePlannerJson(text) {
+  if (typeof text !== 'string' || new Blob([text]).size > DATA_MAX_BYTES) throw new Error('読込可能なサイズは1MBまでです。');
+  return validatePlannerData(JSON.parse(text));
+}
+
+function updateDataStatus(message) {
+  dataSaveMessage = message;
+  const status = document.getElementById('data-save-status');
+  if (status) status.textContent = message;
+}
+
+function syncDataControls() {
+  inputTitle.value = state.title; displayTitleEl.textContent = state.title;
+  inputCols.value = state.cols; inputDefaultRows.value = state.defaultRows;
+  selectPairing.value = state.pairing; selectGroupMode.value = state.groupMode;
+  chkShowRuby.checked = state.showRuby; chkShowGroupBadge.checked = state.showGroupBadge; chkShowGroupLine.checked = state.showGroupLine;
+}
+
+function saveToStorage() {
+  if (!localSaveEnabled) return false;
+  try {
+    const data = validatePlannerData(state);
+    localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify({ schemaVersion: 1, data }));
+    updateDataStatus('端末保存ON：このブラウザに保存済みです。共有端末では使用後に削除してください。');
+    return true;
+  } catch (error) {
+    updateDataStatus('端末への保存に失敗しました。終了前にJSONバックアップを保存してください。');
+    return false;
+  }
+}
+
+function loadFromStorage() {
+  try {
+    localSaveEnabled = localStorage.getItem(DATA_PREF_KEY) === 'on';
+    if (localSaveEnabled) {
+      const saved = localStorage.getItem(DATA_STORAGE_KEY) || DATA_OLD_KEYS.map(k => localStorage.getItem(k)).find(Boolean);
+      if (saved) Object.assign(state, parsePlannerJson(saved));
+      updateDataStatus('端末保存ON：このブラウザにデータを保存します。');
+    } else if ([DATA_STORAGE_KEY, ...DATA_OLD_KEYS].some(k => localStorage.getItem(k))) {
+      updateDataStatus('端末保存OFF：以前の保存データがあります。ONにすると復元できます。共有端末では削除してください。');
+    }
+  } catch (error) {
+    updateDataStatus('端末データを読み込めませんでした。現在の内容は変更していません。JSONバックアップから復元できます。');
+  }
+  syncDataControls();
+}
+
+function exportJson() {
+  try {
+    const payload = { title: 'SmartSeatPlanner_Data', schemaVersion: 1, exportDate: new Date().toISOString(), data: validatePlannerData(state) };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url;
+    a.download = `席替えバックアップ_${state.title.replace(/[\\/:*?"<>|]/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    showToast('JSON保存を開始しました。氏名を含むため保存先・共有先を確認してください。');
+  } catch (error) { alert(`バックアップを作成できませんでした。${error.message}`); }
+}
+
+function importJson(e) {
+  const input = e.target, file = input.files[0];
+  if (!file) return;
+  if (file.size > DATA_MAX_BYTES) { alert('読込可能なサイズは1MBまでです。'); input.value = ''; return; }
+  const reader = new FileReader();
+  reader.onerror = () => { alert('ファイルを読み込めませんでした。現在の内容は変更していません。'); input.value = ''; };
+  reader.onload = () => {
+    try {
+      const next = parsePlannerJson(reader.result);
+      if (!confirm(`「${next.title}」の名簿${next.students.length}人を復元し、現在の座席表を置き換えます。続行しますか？`)) return;
+      const previous = JSON.parse(JSON.stringify(state));
+      try { Object.assign(state, next); delete state.islandDividers; syncDataControls(); updatePerspectiveUI(); renderAll(); }
+      catch (error) { Object.assign(state, previous); syncDataControls(); updatePerspectiveUI(); renderAll(); throw error; }
+      saveToStorage(); window.dispatchEvent(new Event('seatplanner:restored'));
+      showToast('JSONから復元しました。');
+    } catch (error) { alert(`読み込みに失敗しました。現在の内容は変更していません。\n${error.message}`); }
+    finally { input.value = ''; }
+  };
+  reader.readAsText(file);
+}
+
+function setupDataSafety() {
+  const bar = document.createElement('section');
+  bar.className = 'toolbar data-safety-bar'; bar.setAttribute('aria-label', '個人情報の端末保存');
+  const label = document.createElement('label'), toggle = document.createElement('input');
+  toggle.type = 'checkbox'; toggle.checked = localSaveEnabled;
+  label.append(toggle, ' この端末に名簿・座席を自動保存する');
+  const status = document.createElement('span'); status.id = 'data-save-status'; status.setAttribute('role', 'status'); status.textContent = dataSaveMessage;
+  const remove = document.createElement('button'); remove.textContent = '端末の保存データを削除';
+  const erase = () => { for (const key of [DATA_STORAGE_KEY, ...DATA_OLD_KEYS]) localStorage.removeItem(key); };
+  toggle.addEventListener('change', () => {
+    try {
+      if (toggle.checked) {
+        const saved = localStorage.getItem(DATA_STORAGE_KEY) || DATA_OLD_KEYS.map(k => localStorage.getItem(k)).find(Boolean);
+        if (saved && confirm('以前この端末に保存した座席表を復元しますか？「キャンセル」で現在の座席表を保存します。')) {
+          const restored = parsePlannerJson(saved); Object.assign(state, restored); delete state.islandDividers;
+          syncDataControls(); updatePerspectiveUI(); renderAll(); window.dispatchEvent(new Event('seatplanner:restored'));
+        }
+        localStorage.setItem(DATA_PREF_KEY, 'on'); localSaveEnabled = true; saveToStorage();
+      } else {
+        localSaveEnabled = false; localStorage.setItem(DATA_PREF_KEY, 'off'); erase();
+        updateDataStatus('端末保存OFF：端末の保存データを削除しました。終了前にJSONバックアップを保存してください。');
+      }
+    } catch (error) { updateDataStatus('端末保存の設定を変更できませんでした。保存・削除が完了していない可能性があります。'); }
+    toggle.checked = localSaveEnabled;
+  });
+  remove.addEventListener('click', () => {
+    if (!confirm('このブラウザに保存した名簿・座席表を削除し、自動保存をOFFにします。画面上の内容とダウンロード済みファイルは残ります。続行しますか？')) return;
+    localSaveEnabled = false; toggle.checked = false;
+    try { localStorage.setItem(DATA_PREF_KEY, 'off'); erase(); updateDataStatus('端末の保存データを削除しました。画面の内容はタブを閉じるまで残ります。'); }
+    catch (error) { updateDataStatus('端末データを削除できませんでした。ブラウザのサイトデータ設定から削除してください。'); }
+  });
+  bar.append(label, remove, status); document.querySelector('header').after(bar);
+  const style = document.createElement('style'); style.textContent = '.data-safety-bar{font-size:.8rem;line-height:1.6}.data-safety-bar label{display:flex;gap:6px;align-items:center}#data-save-status{flex-basis:100%}@media print{.data-safety-bar{display:none!important}}'; document.head.append(style);
+}
+
+/* Safe roster parsing and seat assignment. Inlined before init by the build. */
+function parseRosterText(text) {
+  const students = [], errors = [], warnings = [], numbers = new Set();
+  const genderOf = s => ({'男':'male','男子':'male',m:'male',male:'male','女':'female','女子':'female',f:'female',female:'female','その他':'other',other:'other'})[s.toLowerCase()];
+  const kanaOnly = s => /^[\u3040-\u30ff\uff65-\uff9f\s]+$/.test(s);
+  let next = 1;
+  String(text).split(/\r?\n/).forEach((raw, index) => {
+    if (!raw.trim()) return;
+    const line = index + 1;
+    let value = raw.trim(), kana = '', gender = 'other';
+    const parens = value.match(/[（(]([^）)]+)[）)]/g) || [];
+    if (parens.length > 1) { errors.push(`${line}行目: ふりがな括弧は1組にしてください。`); return; }
+    if (parens.length) { kana = parens[0].slice(1,-1).trim(); value = value.replace(parens[0], ' '); }
+    const explicitColumns = /\t|,/.test(value);
+    let tokens = explicitColumns ? value.split(/\t|,/).map(s => s.trim()) : value.split(/[ \u3000]+/);
+    if (tokens.some(t => /["\r\n]/.test(t))) { errors.push(`${line}行目: 引用符付きCSVは未対応です。タブ区切りで貼り付けてください。`); return; }
+    let no = next;
+    const numeric = (tokens[0] || '').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0)-65248));
+    if (/^\d+$/.test(numeric)) { no = Number(numeric); tokens.shift(); }
+    else if (/^[+-]?\d/.test(numeric)) { errors.push(`${line}行目: 出席番号は正の整数にしてください。`); return; }
+    if (!Number.isSafeInteger(no) || no < 1 || no > 9999) { errors.push(`${line}行目: 出席番号は1〜9999です。`); return; }
+    if (numbers.has(no)) { errors.push(`${line}行目: 出席番号${no}が重複しています。`); return; }
+    if (tokens.length > 1 && genderOf(tokens[0])) gender = genderOf(tokens.shift());
+    if (tokens.length > 1 && genderOf(tokens[tokens.length-1])) gender = genderOf(tokens.pop());
+    let name;
+    if (explicitColumns && tokens.length === 2 && !kana) { name = tokens[0]; kana = tokens[1]; }
+    else if (!explicitColumns && !kana && tokens.length === 4 && tokens.slice(0,2).every(t => /[\u4e00-\u9fff]/.test(t)) && tokens.slice(2).every(kanaOnly)) {
+      name = tokens.slice(0,2).join(' '); kana = tokens.slice(2).join(' ');
+    } else {
+      name = tokens.join(' ').trim();
+      if (!kana && tokens.length > 1 && tokens.some(kanaOnly)) warnings.push(`${line}行目: 空白区切りを氏名「${name}」として保持しました。ふりがなは括弧かタブ列で指定してください。`);
+    }
+    if (!name || name.length > 100 || kana.length > 150) { errors.push(`${line}行目: 氏名が空欄、または氏名100文字・ふりがな150文字の上限を超えています。`); return; }
+    numbers.add(no); next = Math.max(next, no+1);
+    students.push({id:no,no,name,kana,gender});
+  });
+  if (students.length > 120) errors.push('名簿は120名まで登録できます。');
+  return {students,errors,warnings};
+}
+
+function reconcileRosterSeats(previous, students, seats) {
+  const normalize = s => s.normalize('NFC').replace(/[\s\u3000]+/g,'');
+  const old = new Map(previous.map(s => [s.id,s]));
+  const current = new Map(students.map(s => [s.id,s]));
+  return Object.fromEntries(Object.entries(seats).map(([key,seat]) => {
+    const a = old.get(seat.studentId), b = current.get(seat.studentId);
+    const keep = a && b && a.no === b.no && normalize(a.name) === normalize(b.name);
+    return [key, {...seat, studentId: keep ? seat.studentId : null, isLocked: seat.studentId && !keep ? false : seat.isLocked}];
+  }));
+}
+
+function planSeatAssignment(students, seats, keys, random) {
+  const result = Object.fromEntries(Object.entries(seats).map(([k,v]) => [k,{...v}]));
+  const locked = new Set(), targets = [];
+  keys.forEach(key => {
+    const seat = result[key] || (result[key] = {studentId:null,isLocked:false,isDisabled:false});
+    if (seat.isDisabled) return;
+    if (seat.isLocked) { if (seat.studentId != null) locked.add(seat.studentId); }
+    else targets.push(key);
+  });
+  const pending = students.filter(s => !locked.has(s.id)).slice().sort((a,b) => a.no-b.no);
+  if (pending.length > targets.length) return {error:`座席が${pending.length-targets.length}席不足しています。列・行を増やすか、固定空席・使用しない席を見直してください。配置は変更していません。`};
+  if (random) for (let i=pending.length-1;i>0;i--) { const j=Math.floor(random()*(i+1)); [pending[i],pending[j]]=[pending[j],pending[i]]; }
+  targets.forEach((key,i) => { result[key].studentId = pending[i] ? pending[i].id : null; });
+  return {seats:result};
+}
+
+function canSwapSeats(seats,a,b) {
+  return !!a && !!b && a !== b && [seats[a],seats[b]].every(s => !s || (!s.isLocked && !s.isDisabled));
+}
+function rosterSeatKeys() {
+  const keys=[];
+  for(let c=0;c<state.cols;c++) for(let r=0;r<(state.colRows[c] || state.defaultRows);r++) keys.push(`${r},${c}`);
+  return keys;
+}
+function saveRosterFromModal() {
+  const parsed = parseRosterText(rosterTextarea.value);
+  if (parsed.errors.length) { alert('名簿を保存できません。\n'+parsed.errors.join('\n')); return; }
+  if (parsed.warnings.length && !confirm(parsed.warnings.join('\n')+'\n\nこの内容で保存しますか？')) return;
+  if (!parsed.students.length && state.students.length && !confirm('名簿を空にし、全員の配置・固定を解除しますか？')) return;
+  state.seats = reconcileRosterSeats(state.students,parsed.students,state.seats);
+  state.students = parsed.students; state.selectedSeatKey = null;
+  closeRosterModal(); renderAll(); saveToStorage(); showToast(`名簿を更新しました（${state.students.length}名）`);
+}
+function openRosterModal() {
+  rosterTextarea.value = state.students.map(s => `${s.no}\t${s.name}\t${s.kana || ''}\t${s.gender==='male'?'男':s.gender==='female'?'女':'その他'}`).join('\n');
+  modalRoster.classList.add('active');
+}
+function assignRosterSeats(random) {
+  if (!state.students.length) { showToast('名簿を登録してください'); openRosterModal(); return; }
+  const result = planSeatAssignment(state.students,state.seats,random ? rosterSeatKeys() : getViewOrderedSeatKeys(selectOrderDir.value),random ? Math.random : null);
+  if (result.error) { alert(result.error); return; }
+  state.seats=result.seats; state.selectedSeatKey=null; renderSeats(); saveToStorage(); showToast(random?'ランダムに席替えしました':'出席番号順に整列しました');
+}
+function shuffleSeats() { assignRosterSeats(true); }
+function orderSeatsByNumber() { assignRosterSeats(false); }
+function swapSeats(a,b) {
+  if (!canSwapSeats(state.seats,a,b)) { showToast('固定席・使用しない席は入れ替えできません'); return false; }
+  ensureSeatExists(a); ensureSeatExists(b);
+  [state.seats[a].studentId,state.seats[b].studentId]=[state.seats[b].studentId,state.seats[a].studentId]; return true;
+}
+function handleSeatClick(key) {
+  const seat = state.seats[key] || {};
+  if (seat.isDisabled || seat.isLocked) { showToast('操作ボタンで固定・使用しない席を解除してください'); return; }
+  if (!state.selectedSeatKey) state.selectedSeatKey=key;
+  else if (state.selectedSeatKey===key) state.selectedSeatKey=null;
+  else { if (swapSeats(state.selectedSeatKey,key)) { saveToStorage(); showToast('座席を入れ替えました'); } state.selectedSeatKey=null; }
+  renderSeats();
+}
+function handleDragStart(e) {
+  const key=this.dataset.seatKey, seat=state.seats[key] || {};
+  if (seat.isLocked || seat.isDisabled) { e.preventDefault(); draggedSeatKey=null; return; }
+  draggedSeatKey=key; this.classList.add('is-dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',key);
+}
+function handleDrop(e) {
+  e.preventDefault(); this.classList.remove('drag-over');
+  if (draggedSeatKey && swapSeats(draggedSeatKey,this.dataset.seatKey)) { state.selectedSeatKey=null; renderSeats(); saveToStorage(); showToast('座席を移動しました'); }
+}
+function toggleDisable(key) {
+  ensureSeatExists(key);
+  if (state.seats[key].isLocked) { showToast('固定を解除してから変更してください'); return; }
+  state.seats[key].isDisabled=!state.seats[key].isDisabled;
+  if (state.seats[key].isDisabled) state.seats[key].studentId=null;
+  state.selectedSeatKey=null; renderSeats(); saveToStorage();
+}
+function setupRosterSeating() {
+  const section=document.createElement('section'); section.id='unseated-panel'; section.className='no-print';
+  section.style.cssText='margin:16px auto;padding:16px;max-width:1000px;background:#fff7ed;border:1px solid #fdba74;border-radius:12px';
+  section.setAttribute('aria-label','未配置の生徒');
+  stageEl.parentElement.appendChild(section);
+  const help=document.createElement('p'); help.textContent='推奨形式：番号［タブ］氏名［タブ］ふりがな［タブ］性別（男・女・その他）。空白を含む氏名はそのまま保持します。ふりがなは括弧でも指定できます。氏名変更時は安全のため再配置が必要です。';
+  rosterTextarea.insertAdjacentElement('beforebegin',help);
+  const renderOriginal=renderSeats;
+  renderSeats=function() { renderOriginal(); renderUnseatedPanel(); };
+  function renderUnseatedPanel() {
+    const keys=rosterSeatKeys(), occupied=new Set(keys.filter(k => !state.seats[k]?.isDisabled).map(k=>state.seats[k]?.studentId));
+    const unseated=state.students.filter(s=>!occupied.has(s.id));
+    section.replaceChildren(); section.hidden=!unseated.length;
+    if (!unseated.length) return;
+    const heading=document.createElement('h3'); heading.textContent=`未配置 ${unseated.length}名`; section.appendChild(heading);
+    const list=document.createElement('p'); list.textContent=unseated.map(s=>`${s.no} ${s.name}`).join(' ／ '); section.appendChild(list);
+    const studentSelect=document.createElement('select'); studentSelect.setAttribute('aria-label','配置する生徒');
+    unseated.forEach(s=>studentSelect.add(new Option(`${s.no} ${s.name}`,String(s.id))));
+    const seatSelect=document.createElement('select'); seatSelect.setAttribute('aria-label','配置先の空席');
+    keys.filter(k=>!state.seats[k]?.studentId && !state.seats[k]?.isLocked && !state.seats[k]?.isDisabled).forEach(k=>{const [r,c]=k.split(',').map(Number); seatSelect.add(new Option(`第${c+1}列・前から${r+1}番`,k));});
+    const button=document.createElement('button'); button.type='button'; button.textContent='選んだ空席に配置'; button.disabled=!seatSelect.options.length;
+    button.addEventListener('click',()=>{const s=unseated.find(s=>String(s.id)===studentSelect.value), key=seatSelect.value; if(!s || !key) return; ensureSeatExists(key); state.seats[key].studentId=s.id; state.selectedSeatKey=null; renderSeats(); saveToStorage();});
+    section.append(studentSelect,seatSelect,button);
+    if (!seatSelect.options.length) { const note=document.createElement('p'); note.textContent='配置可能な空席がありません。列・行を増やすか固定空席を解除してください。'; section.appendChild(note); }
+  }
+  renderUnseatedPanel();
+}
+if (typeof module !== 'undefined' && module.exports) module.exports={parseRosterText,reconcileRosterSeats,planSeatAssignment,canSwapSeats};
+
+
+/* Accessible controls and privacy-conscious, shared print/PDF rendering. */
+function createOutputCanvas() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 2339; canvas.height = 1654;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas unavailable');
+  const W = canvas.width, H = canvas.height;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  function roundedBox(x, y, width, height, radius) {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(x, y, width, height, r);
+    } else {
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + width - r, y); ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+      ctx.lineTo(x + width, y + height - r); ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      ctx.lineTo(x + r, y + height); ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+      ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+    ctx.fill(); ctx.stroke();
+  }
+  function text(value, x, y, size, width, color = '#0f172a', bold = false, align = 'center') {
+    value = String(value);
+    ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillStyle = color;
+    ctx.font = `${bold ? 'bold ' : ''}${size}px sans-serif`;
+    while (ctx.measureText(value).width > width && size > 10) {
+      size--; ctx.font = `${bold ? 'bold ' : ''}${size}px sans-serif`;
+    }
+    ctx.fillText(value, x, y, width);
+  }
+  text(state.title || '座席表', W / 2, 65, 54, W - 180, '#0f172a', true);
+  text(`${new Date().toLocaleDateString('ja-JP')}　${state.perspective === 'teacher' ? '教師目線（黒板が下）' : '生徒目線（黒板が上）'}`, W / 2, 119, 23, W - 160);
+  const teacher = state.perspective === 'teacher';
+  const cols = Array.from({length: state.cols}, (_, c) => c);
+  if (teacher) cols.reverse();
+  const groupSize = state.pairing === 'triplet' ? 3 : state.pairing === 'pair' ? 2 : 0;
+  const boundary = (c, next) => groupSize && next !== undefined && Math.floor(c / groupSize) !== Math.floor(next / groupSize);
+  const aisleCount = cols.filter((c, i) => boundary(c, cols[i + 1])).length;
+  const gapX = 14, aisle = 32, gapY = 14;
+  const maxRows = Math.max(...state.colRows), top = teacher ? 165 : 265, bottom = teacher ? 1390 : 1550;
+  const cw = (W - 200 - (state.cols - 1) * gapX - aisleCount * aisle) / state.cols;
+  const ch = Math.min(170, (bottom - top - (maxRows - 1) * gapY) / maxRows);
+  const boardY = teacher ? 1500 : 158;
+  ctx.fillStyle = '#1e392a'; ctx.fillRect(W / 2 - 390, boardY, 780, 42);
+  text('黒　板', W / 2, boardY + 21, 27, 740, '#fff', true);
+  const deskY = teacher ? 1455 : 210;
+  ctx.fillStyle = '#b45309'; ctx.fillRect(W / 2 - 90, deskY, 180, 30);
+  text('教　卓', W / 2, deskY + 15, 19, 160, '#fff');
+  let x = 100;
+  cols.forEach((c, ci) => {
+    const count = state.colRows[c], rows = Array.from({length: count}, (_, r) => r);
+    if (teacher) rows.reverse();
+    const y0 = teacher ? bottom - (count * ch + (count - 1) * gapY) : top;
+    rows.forEach((r, ri) => {
+      const y = y0 + ri * (ch + gapY), seat = state.seats[`${r},${c}`] || {};
+      const student = state.students.find(s => s.id === seat.studentId);
+      ctx.fillStyle = seat.isDisabled ? '#f1f5f9' : state.showGenderColors && student?.gender === 'male' ? '#eff6ff' : state.showGenderColors && student?.gender === 'female' ? '#fdf2f8' : '#fff';
+      ctx.strokeStyle = '#475569'; ctx.lineWidth = 2;
+      roundedBox(x, y, cw, ch, Math.min(14, ch * .12));
+      if (seat.isDisabled) { text('使用しない席', x + cw / 2, y + ch / 2, Math.min(23, ch * .3), cw - 18, '#64748b'); return; }
+      const group = state.showGroupBadge ? getSeatGroup(r, c) : null;
+      text(student ? `No.${student.no}` : `${r + 1}-${c + 1}`, x + 10, y + ch * .17, Math.min(23, ch * .2), cw * .56, '#475569', false, 'left');
+      if (group) text(`${group}班`, x + cw - 10, y + ch * .17, Math.min(20, ch * .19), cw * .32, '#0f172a', true, 'right');
+      const ruby = state.showRuby && student?.kana;
+      if (ruby) text(ruby, x + cw / 2, y + ch * .43, Math.min(22, ch * .2), cw - 18, '#475569');
+      text(student ? student.name : '空席', x + cw / 2, y + ch * (ruby ? .74 : .62), Math.min(38, ch * .31), cw - 18, '#0f172a', true);
+      if (isGroupBoundaryAfter(r, c)) {
+        const ly = teacher ? y - gapY / 2 : y + ch + gapY / 2;
+        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x, ly); ctx.lineTo(x + cw, ly); ctx.stroke();
+      }
+    });
+    x += cw + gapX + (boundary(c, cols[ci + 1]) ? aisle : 0);
+  });
+  return canvas;
+}
+generateAndDownloadPdf = function () {
+  try {
+    const canvas = createOutputCanvas();
+    const binary = atob(canvas.toDataURL('image/jpeg', .95).split(',')[1]);
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+    const blob = new Blob([buildPdfBinary(bytes, 841.89, 595.28, canvas.width, canvas.height)], {type: 'application/pdf'});
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = `${(state.title || '座席表').replace(/[\\/:*?"<>|]/g, '_')}_${new Date().toLocaleDateString('sv-SE')}.pdf`;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+    showToast('掲示用PDFを保存しました（固定情報は含みません）');
+  } catch (error) { console.error(error); showToast('PDFを作成できませんでした。印刷からPDF保存をお試しください。'); }
+};
+function setupAccessibilityOutput() {
+  const controls = document.createElement('div'); controls.className = 'output-options';
+  const label = document.createElement('label');
+  const color = document.createElement('input'); color.type = 'checkbox'; color.id = 'show-gender-colors'; color.checked = state.showGenderColors === true;
+  label.append(color, ' 性別による色分けを表示（印刷・PDFにも反映）');
+  const help = document.createElement('span'); help.textContent = '印刷・PDFに固定情報は表示しません。座席は Tab で移動し、Enter / Space で選択・交換できます。';
+  controls.append(label, help); document.querySelector('main').prepend(controls);
+  const live = document.createElement('div'); live.className = 'sr-only'; live.setAttribute('aria-live', 'polite'); document.body.append(live);
+  color.addEventListener('change', () => { state.showGenderColors = color.checked; saveToStorage(); decorate(); });
+  function decorate() {
+    color.checked = state.showGenderColors === true;
+    document.body.classList.toggle('gender-colors-off', !color.checked);
+    stageEl.querySelectorAll('.seat-cell').forEach(cell => {
+      cell.tabIndex = 0; cell.setAttribute('role', 'group');
+      const key = cell.dataset.seatKey, [r, c] = key.split(',').map(Number), seat = state.seats[key] || {};
+      const student = state.students.find(s => s.id === seat.studentId);
+      cell.setAttribute('aria-label', `${c + 1}列 ${r + 1}行、${seat.isDisabled ? '使用しない席' : student ? `${student.no}番 ${student.name}` : '空席'}${seat.isLocked ? '、固定' : ''}${state.selectedSeatKey === key ? '、選択中' : ''}`);
+      cell.querySelectorAll('button').forEach(b => { if (b.title) b.setAttribute('aria-label', b.title); });
+    });
+    // Physical island boundaries stay in the same place when the view is reversed.
+    const cols = [...stageEl.querySelectorAll('.seat-column')], size = state.pairing === 'pair' ? 2 : state.pairing === 'triplet' ? 3 : 0;
+    cols.forEach((column, i) => {
+      const c = Number(column.querySelector('.seat-cell')?.dataset.seatKey.split(',')[1]);
+      const next = Number(cols[i + 1]?.querySelector('.seat-cell')?.dataset.seatKey.split(',')[1]);
+      column.classList.toggle('pair-gap-right', !!size && i < cols.length - 1 && Math.floor(c / size) !== Math.floor(next / size));
+    });
+  }
+  new MutationObserver(decorate).observe(stageEl, {childList: true}); window.addEventListener('seatplanner:history', decorate); decorate();
+  stageEl.addEventListener('keydown', e => {
+    const cell = e.target.closest('.seat-cell'); if (!cell || e.target !== cell) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault(); const key = cell.dataset.seatKey; handleSeatClick(key); decorate();
+      stageEl.querySelector(`[data-seat-key="${key}"]`)?.focus();
+      live.textContent = state.selectedSeatKey ? '座席を選択しました。交換先を選んで Enter を押してください。' : '座席の選択を完了しました。';
+    } else if (e.key === 'Escape') { state.selectedSeatKey = null; renderSeats(); decorate(); stageEl.querySelector(`[data-seat-key="${cell.dataset.seatKey}"]`)?.focus(); }
+  });
+  document.querySelectorAll('.modal-overlay').forEach((overlay, i) => {
+    const dialog = overlay.querySelector('.modal'), heading = dialog.querySelector('h2');
+    heading.id ||= `dialog-heading-${i}`; dialog.setAttribute('role', 'dialog'); dialog.setAttribute('aria-modal', 'true'); dialog.setAttribute('aria-labelledby', heading.id); dialog.tabIndex = -1;
+    overlay.querySelectorAll('.modal-header button').forEach(b => b.setAttribute('aria-label', '閉じる'));
+    let previous = null, wasOpen = false;
+    const focusable = () => [...dialog.querySelectorAll('button, input, select, textarea, [tabindex="0"]')].filter(el => !el.disabled && el.getClientRects().length);
+    new MutationObserver(() => {
+      const open = overlay.classList.contains('active');
+      if (open && !wasOpen) { previous = document.activeElement; (focusable()[0] || dialog).focus(); }
+      if (!open && wasOpen && previous?.isConnected) previous.focus();
+      wasOpen = open;
+    }).observe(overlay, {attributes: true, attributeFilter: ['class']});
+    overlay.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); overlay.classList.remove('active'); }
+      if (e.key === 'Tab') { const list = focusable(), first = list[0] || dialog, last = list.at(-1) || dialog;
+        if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog)) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+  });
+  document.getElementById('roster-textarea').setAttribute('aria-label', '名簿（番号・名前・ふりがな・性別）');
+  const toast = document.getElementById('toast'); toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite');
+  window.addEventListener('beforeprint', () => {
+    document.getElementById('accessible-print-sheet')?.remove();
+    try { const canvas = createOutputCanvas(); canvas.id = 'accessible-print-sheet'; document.body.append(canvas); document.body.classList.add('has-print-sheet'); }
+    catch (error) { console.error(error); }
+  });
+  window.addEventListener('afterprint', () => { document.getElementById('accessible-print-sheet')?.remove(); document.body.classList.remove('has-print-sheet'); });
+}
+
+
+
+    init();
+    setupDataSafety();
+    setupRosterSeating();
+    setupAccessibilityOutput();
+    setupClassroomWorkflow();
+  </script>
+</body>
+</html>
